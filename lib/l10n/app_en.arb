@@ -1,0 +1,69 @@
+{
+  "@@locale": "en",
+  "appTitle": "Streak Reader",
+  "booksLibrary": "Book Library",
+  "statistics": "Statistics",
+  "settings": "Settings",
+  "language": "Language",
+  "theme": "Theme",
+  "themeSystem": "System",
+  "themeLight": "Light",
+  "themeDark": "Dark",
+  "noBooksYet": "No books yet\nAdd a book by tapping +",
+  "addBook": "Add Book",
+  "bookTitle": "Book title",
+  "choosePdfFile": "Choose a PDF file",
+  "titleOnlyHint": "You can add just a title to your \"Want to read\" list",
+  "save": "Save",
+  "cancel": "Cancel",
+  "ok": "OK",
+  "editTitle": "Edit title",
+  "missingFileWarning": "Warning: file is missing or was moved",
+  "wantToReadNoFile": "Want to read (no file)",
+  "fileNotFoundTitle": "File not found",
+  "fileNotFoundBody": "The file was moved or deleted from the device.\nThis book cannot be opened.",
+  "noFileTitle": "No file",
+  "noFileBody": "This book has no PDF file.\nAdd a PDF file to open it in the reader.",
+  "errorTitle": "Error",
+  "readerFileMissing": "The file does not exist.\nIt was moved or deleted from the device.",
+  "currentStreak": "Current streak",
+  "longestStreak": "Longest streak",
+  "totalReading": "Total reading",
+  "pagesRead": "Pages read",
+  "completedBooks": "Completed books",
+  "day": "day",
+  "minute": "min",
+  "page": "page",
+  "book": "book",
+  "errorMessage": "Error: {error}",
+  "@errorMessage": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "addPdf": "Add PDF",
+  "changePdf": "Change PDF",
+  "attachPdfWebUnsupported": "Attaching a PDF is not supported on web yet. Please use the mobile or desktop app.",
+  "yourBooks": "Your books",
+  "pageNumberLabel": "Page {page}",
+  "@pageNumberLabel": {
+    "placeholders": {
+      "page": {
+        "type": "int"
+      }
+    }
+  },
+  "streakGoalHint": "Read {minutes} minutes today to keep your streak alive.",
+  "@streakGoalHint": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "readingOverview": "Reading overview",
+  "appTagline": "A little reading every day adds up.",
+  "addBookSubtitle": "Choose a PDF or save it to your wishlist."
+}

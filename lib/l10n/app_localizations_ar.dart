@@ -1,0 +1,156 @@
+// ignore: unused_import
+import 'package:intl/intl.dart' as intl;
+import 'app_localizations.dart';
+
+// ignore_for_file: type=lint
+
+/// The translations for Arabic (`ar`).
+class AppLocalizationsAr extends AppLocalizations {
+  AppLocalizationsAr([String locale = 'ar']) : super(locale);
+
+  @override
+  String get appTitle => 'Streak Reader';
+
+  @override
+  String get booksLibrary => 'مكتبة الكتب';
+
+  @override
+  String get statistics => 'الإحصائيات';
+
+  @override
+  String get settings => 'الإعدادات';
+
+  @override
+  String get language => 'اللغة';
+
+  @override
+  String get theme => 'المظهر';
+
+  @override
+  String get themeSystem => 'النظام';
+
+  @override
+  String get themeLight => 'فاتح';
+
+  @override
+  String get themeDark => 'داكن';
+
+  @override
+  String get noBooksYet => 'لا توجد كتب بعد\nأضف كتاباً بالضغط على +';
+
+  @override
+  String get addBook => 'إضافة كتاب';
+
+  @override
+  String get bookTitle => 'عنوان الكتاب';
+
+  @override
+  String get choosePdfFile => 'اختيار ملف PDF';
+
+  @override
+  String get titleOnlyHint => 'يمكنك إضافة عنوان فقط لقائمة \"أريد قراءته\"';
+
+  @override
+  String get save => 'حفظ';
+
+  @override
+  String get cancel => 'إلغاء';
+
+  @override
+  String get ok => 'حسناً';
+
+  @override
+  String get editTitle => 'تعديل العنوان';
+
+  @override
+  String get missingFileWarning => 'تحذير: الملف مفقود أو تم نقله';
+
+  @override
+  String get wantToReadNoFile => 'أريد قراءته (بدون ملف)';
+
+  @override
+  String get fileNotFoundTitle => 'الملف غير موجود';
+
+  @override
+  String get fileNotFoundBody =>
+      'تم نقل الملف أو حذفه من الجهاز.\nلا يمكن فتح هذا الكتاب.';
+
+  @override
+  String get noFileTitle => 'لا يوجد ملف';
+
+  @override
+  String get noFileBody =>
+      'هذا الكتاب بدون ملف PDF.\nأضف ملف PDF لفتحه في القارئ.';
+
+  @override
+  String get errorTitle => 'خطأ';
+
+  @override
+  String get readerFileMissing =>
+      'الملف غير موجود.\nتم نقله أو حذفه من الجهاز.';
+
+  @override
+  String get currentStreak => 'الستريك الحالي';
+
+  @override
+  String get longestStreak => 'أعلى ستريك';
+
+  @override
+  String get totalReading => 'إجمالي القراءة';
+
+  @override
+  String get pagesRead => 'الصفحات المقروءة';
+
+  @override
+  String get completedBooks => 'الكتب المكتملة';
+
+  @override
+  String get day => 'يوم';
+
+  @override
+  String get minute => 'دقيقة';
+
+  @override
+  String get page => 'صفحة';
+
+  @override
+  String get book => 'كتاب';
+
+  @override
+  String errorMessage(String error) {
+    return 'خطأ: $error';
+  }
+
+  @override
+  String get addPdf => 'إضافة ملف PDF';
+
+  @override
+  String get changePdf => 'تغيير ملف PDF';
+
+  @override
+  String get attachPdfWebUnsupported =>
+      'إرفاق ملف PDF غير مدعوم على الويب بعد. استخدم تطبيق الهاتف أو الحاسوب.';
+
+  @override
+  String get yourBooks => 'كتبك';
+
+  @override
+  String pageNumberLabel(int page) {
+    return 'صفحة $page';
+  }
+
+  @override
+  String streakGoalHint(int minutes) {
+    return 'اقرأ $minutes دقائق اليوم لتحافظ على سلسلتك.';
+  }
+
+  @override
+  String get readingOverview => 'نظرة عامة على القراءة';
+
+  @override
+  String get appTagline => 'قليل من القراءة كل يوم يصنع فرقاً.';
+
+  @override
+  String get addBookSubtitle =>
+      'اختر ملف PDF أو أضفه إلى قائمة \"أريد قراءته\".';
+}
