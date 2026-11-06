@@ -28,7 +28,8 @@ class PdfReaderScreen extends ConsumerStatefulWidget {
   ConsumerState<PdfReaderScreen> createState() => _PdfReaderScreenState();
 }
 
-class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
+class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen>
+    with WidgetsBindingObserver {
   final PdfViewerController _controller = PdfViewerController();
   Timer? _idleTimer;
   // Cached in initState so dispose() never touches `ref` after unmount.
@@ -43,6 +44,7 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _currentPage = _initialPage;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -79,7 +81,22 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Flush the last page when the app is backgrounded or about to be
+    // killed; dispose() is not guaranteed to run in that case.
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached ||
+        state == AppLifecycleState.hidden) {
+      final controller = _sessionController;
+      if (controller != null) {
+        unawaited(controller.persistCurrentPage());
+      }
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _idleTimer?.cancel();
     // Fire-and-forget on the cached controller only: no `ref` use here,
     // and the provider outlives this widget so the write completes.

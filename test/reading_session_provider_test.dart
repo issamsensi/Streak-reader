@@ -29,4 +29,21 @@ void main() {
     await controller.stopAndSave();
     expect(await db.getAllSessions(), hasLength(1));
   });
+
+  test('page is persisted on page change, before the session ends', () async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+
+    final bookId = await db.insertBook(BooksCompanion.insert(title: 'Book'));
+    final controller = ReadingSessionController(db);
+
+    controller.start(bookId, 1);
+    controller.updatePage(7);
+    // No stopAndSave(): simulates the app being killed while reading.
+    await controller.persistCurrentPage();
+
+    final books = await db.getAllBooks();
+    expect(books.single.lastPage, 7);
+    expect(controller.state.isActive, isTrue);
+  });
 }

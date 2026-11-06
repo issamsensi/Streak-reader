@@ -60,11 +60,14 @@ class ReadingSessionController extends StateNotifier<ReadingSessionState> {
   final AppDatabase db;
   DateTime _lastInteraction = DateTime.now();
   bool _isSaving = false;
+  int _lastPersistedPage = 0;
+  Future<void> _pendingPersist = Future<void>.value();
 
   ReadingSessionController(this.db) : super(ReadingSessionState.initial(0));
 
   void start(int bookId, int initialPage) {
     _lastInteraction = DateTime.now();
+    _lastPersistedPage = initialPage;
     state = ReadingSessionState(
       isActive: true,
       startTime: DateTime.now(),
@@ -85,6 +88,24 @@ class ReadingSessionController extends StateNotifier<ReadingSessionState> {
   void updatePage(int page) {
     recordInteraction();
     state = state.copyWith(currentPage: page);
+    // Save on every page turn, not only when the reader closes: if the
+    // app is killed while reading, dispose() may never run.
+    _queuePersist(state.bookId, page);
+  }
+
+  void _queuePersist(int bookId, int page) {
+    if (bookId <= 0 || page <= 0 || page == _lastPersistedPage) return;
+    _lastPersistedPage = page;
+    // Chain writes so rapid page turns cannot land out of order.
+    _pendingPersist = _pendingPersist.then(
+      (_) => db.updateBookLastPage(bookId, page),
+    );
+  }
+
+  /// Flushes the current page to the database without ending the session.
+  Future<void> persistCurrentPage() async {
+    _queuePersist(state.bookId, state.currentPage);
+    await _pendingPersist;
   }
 
   bool isIdle(int idleMinutes) {
@@ -116,7 +137,9 @@ class ReadingSessionController extends StateNotifier<ReadingSessionState> {
       elapsedSeconds: 0,
     );
     try {
+      await _pendingPersist;
       if (bookId > 0 && currentPage > 0) {
+        _lastPersistedPage = currentPage;
         await db.updateBookLastPage(bookId, currentPage);
       }
       final now = DateTime.now();
