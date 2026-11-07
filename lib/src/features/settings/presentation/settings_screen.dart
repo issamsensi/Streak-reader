@@ -6,6 +6,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/l10n/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/di/providers.dart';
+import '../../../core/sync/sync_service.dart';
 import '../../../core/utils/date_only.dart';
 import '../../../domain/entities/focus_mode_preferences.dart';
 import '../../../domain/entities/monthly_goal.dart';
@@ -166,6 +167,127 @@ class SettingsScreen extends ConsumerWidget {
     if (result != null) {
       await ref.read(settingsProvider.notifier).setReadingReminder(result);
     }
+  }
+
+  /// Email/password auth dialog. Pops with true once a session is active.
+  Future<bool> _showEmailAuthDialog(
+    BuildContext context,
+    SyncService sync,
+  ) async {
+    final emailController = TextEditingController();
+    final passwordController = TextEditingController();
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        var busy = false;
+        String? message;
+        Future<void> run(
+          StateSetter setState,
+          Future<String?> Function() action, {
+          required bool closesOnSuccess,
+        }) async {
+          if (emailController.text.trim().isEmpty ||
+              passwordController.text.isEmpty) {
+            setState(() => message = 'Enter your email and password.');
+            return;
+          }
+          setState(() {
+            busy = true;
+            message = null;
+          });
+          final outcome = await action();
+          if (!dialogContext.mounted) return;
+          if (outcome == null) {
+            if (closesOnSuccess) {
+              Navigator.pop(dialogContext, true);
+            } else {
+              setState(() {
+                busy = false;
+                message = 'Signed in.';
+              });
+            }
+          } else {
+            setState(() {
+              busy = false;
+              message = outcome;
+            });
+          }
+        }
+
+        return StatefulBuilder(
+          builder: (context, setState) => AlertDialog(
+            title: const Text('Sign in to sync'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  autocorrect: false,
+                  decoration: const InputDecoration(labelText: 'Email'),
+                ),
+                TextField(
+                  controller: passwordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(labelText: 'Password'),
+                ),
+                if (message != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    message!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed:
+                    busy ? null : () => Navigator.pop(dialogContext, false),
+                child: Text(context.l10n.cancel),
+              ),
+              OutlinedButton(
+                onPressed: busy
+                    ? null
+                    : () => run(
+                          setState,
+                          () => sync.signUpWithEmail(
+                            emailController.text,
+                            passwordController.text,
+                          ),
+                          closesOnSuccess: true,
+                        ),
+                child: const Text('Create account'),
+              ),
+              FilledButton(
+                onPressed: busy
+                    ? null
+                    : () => run(
+                          setState,
+                          () => sync.signInWithEmail(
+                            emailController.text,
+                            passwordController.text,
+                          ),
+                          closesOnSuccess: true,
+                        ),
+                child: busy
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Sign in'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    emailController.dispose();
+    passwordController.dispose();
+    return result ?? false;
   }
 
   String _dayLabel(BuildContext context, int day) => switch (day) {
@@ -334,7 +456,8 @@ class SettingsScreen extends ConsumerWidget {
           Builder(
             builder: (context) {
               final sync = ref.watch(syncServiceProvider);
-              final user = sync.currentUser;
+              final user =
+                  ref.watch(syncUserProvider).valueOrNull ?? sync.currentUser;
               return _SettingsSection(
                 icon: Icons.cloud_outlined,
                 title: 'Cloud sync',
@@ -348,7 +471,7 @@ class SettingsScreen extends ConsumerWidget {
                             ? 'Configure Supabase to enable synchronization.'
                             : user == null
                                 ? 'Your library stays local until you sign in.'
-                                : 'Signed in as ${user.email ?? 'Google user'}',
+                                : 'Signed in as ${user.email ?? 'Streak Reader user'}',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
@@ -357,10 +480,18 @@ class SettingsScreen extends ConsumerWidget {
                       if (sync.isAvailable && user == null)
                         OutlinedButton.icon(
                           onPressed: () async {
-                            await sync.signInWithGoogle();
+                            final signedIn =
+                                await _showEmailAuthDialog(context, sync);
+                            if (signedIn && context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Signed in'),
+                                ),
+                              );
+                            }
                           },
                           icon: const Icon(Icons.login_rounded),
-                          label: const Text('Sign in with Google'),
+                          label: const Text('Sign in with email'),
                         )
                       else if (user != null)
                         Row(
