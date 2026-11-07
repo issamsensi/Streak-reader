@@ -104,4 +104,17 @@
   "pauseReading": "إيقاف مؤقت",
   "resumeReading": "استئناف",
   "finishReading": "إنهاء الجلسة"
+  ,"currentlyReading": "تقرأ حالياً"
+  ,"averageDailyReading": "متوسط القراءة اليومية"
+  ,"averageSession": "متوسط الجلسة"
+  ,"totalSessions": "جلسات القراءة"
+  ,"mostActiveDay": "أكثر يوم نشاطاً"
+  ,"week": "أسبوع"
+  ,"month": "شهر"
+  ,"year": "سنة"
+  ,"readingConsistency": "استمرارية القراءة (آخر 14 يوماً)"
+  ,"dailyHistory": "سجل القراءة اليومي"
+  ,"bookProgress": "تقدم القراءة لكل كتاب"
+  ,"noReadingData": "لا توجد بيانات قراءة لهذه الفترة."
+  ,"startReadingForStats": "ابدأ القراءة لرؤية إحصاءاتك."
 }

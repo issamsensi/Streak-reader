@@ -1,0 +1,183 @@
+import '../../core/utils/date_only.dart';
+import '../../data/datasources/local/app_database.dart';
+
+enum StatisticsPeriod { week, month, year }
+
+class ReadingActivityPoint {
+  final String label;
+  final int seconds;
+
+  const ReadingActivityPoint({required this.label, required this.seconds});
+
+  int get minutes => seconds ~/ 60;
+}
+
+class DailyReadingHistoryEntry {
+  final DateTime date;
+  final int seconds;
+
+  const DailyReadingHistoryEntry({required this.date, required this.seconds});
+
+  int get minutes => seconds ~/ 60;
+}
+
+class BookReadingProgress {
+  final Book book;
+  final int pagesRead;
+  final int secondsRead;
+
+  const BookReadingProgress({
+    required this.book,
+    required this.pagesRead,
+    required this.secondsRead,
+  });
+}
+
+class ReadingStatistics {
+  final int currentlyReadingBooks;
+  final int totalSessions;
+  final int averageDailySeconds;
+  final int averageSessionSeconds;
+  final String? mostActiveDateKey;
+  final int mostActiveDateSeconds;
+  final List<ReadingActivityPoint> weeklyActivity;
+  final List<ReadingActivityPoint> monthlyActivity;
+  final List<ReadingActivityPoint> yearlyActivity;
+  final List<DailyReadingHistoryEntry> dailyHistory;
+  final List<BookReadingProgress> bookProgress;
+
+  const ReadingStatistics({
+    this.currentlyReadingBooks = 0,
+    this.totalSessions = 0,
+    this.averageDailySeconds = 0,
+    this.averageSessionSeconds = 0,
+    this.mostActiveDateKey,
+    this.mostActiveDateSeconds = 0,
+    this.weeklyActivity = const [],
+    this.monthlyActivity = const [],
+    this.yearlyActivity = const [],
+    this.dailyHistory = const [],
+    this.bookProgress = const [],
+  });
+
+  double get consistencyPercentage {
+    if (dailyHistory.isEmpty) return 0;
+    final activeDays = dailyHistory.where((entry) => entry.seconds > 0).length;
+    return activeDays / dailyHistory.length;
+  }
+
+  List<ReadingActivityPoint> activityFor(StatisticsPeriod period) =>
+      switch (period) {
+        StatisticsPeriod.week => weeklyActivity,
+        StatisticsPeriod.month => monthlyActivity,
+        StatisticsPeriod.year => yearlyActivity,
+      };
+
+  static ReadingStatistics fromRecords({
+    required List<ReadingSession> sessions,
+    required List<Book> books,
+    required DateTime now,
+  }) {
+    final validSessions =
+        sessions.where((session) => session.durationSeconds > 0).toList();
+    final secondsByDate = <String, int>{};
+    final pagesByBook = <int, int>{};
+    final secondsByBook = <int, int>{};
+    var totalSeconds = 0;
+    for (final session in validSessions) {
+      totalSeconds += session.durationSeconds;
+      secondsByDate[session.date] =
+          (secondsByDate[session.date] ?? 0) + session.durationSeconds;
+      pagesByBook[session.bookId] =
+          (pagesByBook[session.bookId] ?? 0) + session.pagesRead;
+      secondsByBook[session.bookId] =
+          (secondsByBook[session.bookId] ?? 0) + session.durationSeconds;
+    }
+
+    final activeDays = secondsByDate.values.where((value) => value > 0).length;
+    final mostActive = secondsByDate.entries.isEmpty
+        ? null
+        : (secondsByDate.entries.toList()
+              ..sort((a, b) => b.value.compareTo(a.value)))
+            .first;
+    final currentYear = DateOnly.fromDate(now).year;
+    final currentMonth = DateOnly.fromDate(now).month;
+    final weekStart = DateOnly.fromDate(now).subtract(
+      Duration(days: DateOnly.fromDate(now).weekday - 1),
+    );
+    final historyStart =
+        DateOnly.fromDate(now).subtract(const Duration(days: 13));
+
+    int totalForDate(DateTime date) => secondsByDate[DateOnly.key(date)] ?? 0;
+
+    final weekly = [
+      for (var index = 0; index < 7; index++)
+        ReadingActivityPoint(
+          label: _weekdayLabel(weekStart.add(Duration(days: index))),
+          seconds: totalForDate(weekStart.add(Duration(days: index))),
+        ),
+    ];
+    final monthly = [
+      for (var day = 1;
+          day <= DateOnly.daysInMonth(currentYear, currentMonth);
+          day++)
+        ReadingActivityPoint(
+          label: '$day',
+          seconds: totalForDate(DateTime.utc(currentYear, currentMonth, day)),
+        ),
+    ];
+    final yearly = [
+      for (var month = 1; month <= 12; month++)
+        ReadingActivityPoint(
+          label: '$month',
+          seconds: _sumMonth(secondsByDate, currentYear, month),
+        ),
+    ];
+    final dailyHistory = [
+      for (var index = 0; index < 14; index++)
+        DailyReadingHistoryEntry(
+          date: historyStart.add(Duration(days: index)),
+          seconds: totalForDate(historyStart.add(Duration(days: index))),
+        ),
+    ];
+    final progress = books
+        .where((book) => pagesByBook.containsKey(book.id))
+        .map(
+          (book) => BookReadingProgress(
+            book: book,
+            pagesRead: pagesByBook[book.id]!,
+            secondsRead: secondsByBook[book.id]!,
+          ),
+        )
+        .toList()
+      ..sort((a, b) => b.secondsRead.compareTo(a.secondsRead));
+
+    return ReadingStatistics(
+      currentlyReadingBooks: books
+          .where(
+              (book) => !book.isCompleted && pagesByBook.containsKey(book.id))
+          .length,
+      totalSessions: validSessions.length,
+      averageDailySeconds: activeDays == 0 ? 0 : totalSeconds ~/ activeDays,
+      averageSessionSeconds:
+          validSessions.isEmpty ? 0 : totalSeconds ~/ validSessions.length,
+      mostActiveDateKey: mostActive?.key,
+      mostActiveDateSeconds: mostActive?.value ?? 0,
+      weeklyActivity: weekly,
+      monthlyActivity: monthly,
+      yearlyActivity: yearly,
+      dailyHistory: dailyHistory,
+      bookProgress: progress,
+    );
+  }
+
+  static int _sumMonth(Map<String, int> byDate, int year, int month) {
+    final prefix = '$year-${month.toString().padLeft(2, '0')}-';
+    return byDate.entries
+        .where((entry) => entry.key.startsWith(prefix))
+        .fold(0, (total, entry) => total + entry.value);
+  }
+
+  static String _weekdayLabel(DateTime date) =>
+      ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][date.weekday - 1];
+}

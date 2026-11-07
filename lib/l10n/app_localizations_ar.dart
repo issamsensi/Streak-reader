@@ -327,4 +327,43 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get finishReading => 'إنهاء الجلسة';
+
+  @override
+  String get currentlyReading => 'تقرأ حالياً';
+
+  @override
+  String get averageDailyReading => 'متوسط القراءة اليومية';
+
+  @override
+  String get averageSession => 'متوسط الجلسة';
+
+  @override
+  String get totalSessions => 'جلسات القراءة';
+
+  @override
+  String get mostActiveDay => 'أكثر يوم نشاطاً';
+
+  @override
+  String get week => 'أسبوع';
+
+  @override
+  String get month => 'شهر';
+
+  @override
+  String get year => 'سنة';
+
+  @override
+  String get readingConsistency => 'استمرارية القراءة (آخر 14 يوماً)';
+
+  @override
+  String get dailyHistory => 'سجل القراءة اليومي';
+
+  @override
+  String get bookProgress => 'تقدم القراءة لكل كتاب';
+
+  @override
+  String get noReadingData => 'لا توجد بيانات قراءة لهذه الفترة.';
+
+  @override
+  String get startReadingForStats => 'ابدأ القراءة لرؤية إحصاءاتك.';
 }

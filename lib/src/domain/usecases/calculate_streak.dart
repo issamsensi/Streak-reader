@@ -1,6 +1,7 @@
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/date_only.dart';
 import '../../data/datasources/local/app_database.dart';
+import '../entities/reading_statistics.dart';
 
 /// Resolves the daily goal that applied on a stored `YYYY-MM-DD` date.
 typedef DailyGoalMinutesResolver = int Function(String dateKey);
@@ -14,6 +15,7 @@ class StreakResult {
   final int todaySeconds;
   final int todayMinutes;
   final int todayGoalMinutes;
+  final ReadingStatistics readingStatistics;
 
   const StreakResult({
     required this.currentStreak,
@@ -24,6 +26,7 @@ class StreakResult {
     this.todaySeconds = 0,
     this.todayMinutes = 0,
     this.todayGoalMinutes = AppConstants.defaultDailyGoalMinutes,
+    this.readingStatistics = const ReadingStatistics(),
   });
 }
 
@@ -48,6 +51,12 @@ class CalculateStreak {
     final completedBooks = books.where((b) => b.isCompleted).length;
     final todayKey = DateOnly.key(DateOnly.fromDate(_now()));
 
+    final readingStatistics = ReadingStatistics.fromRecords(
+      sessions: sessions,
+      books: books,
+      now: _now(),
+    );
+
     if (sessions.isEmpty) {
       return StreakResult(
         currentStreak: 0,
@@ -58,6 +67,7 @@ class CalculateStreak {
         todaySeconds: 0,
         todayMinutes: 0,
         todayGoalMinutes: _goalMinutesForDate(todayKey),
+        readingStatistics: readingStatistics,
       );
     }
 
@@ -95,6 +105,7 @@ class CalculateStreak {
       todaySeconds: todaySeconds,
       todayMinutes: todaySeconds ~/ 60,
       todayGoalMinutes: _goalMinutesForDate(todayKey),
+      readingStatistics: readingStatistics,
     );
   }
 

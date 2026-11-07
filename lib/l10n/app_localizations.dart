@@ -687,6 +687,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Finish session'**
   String get finishReading;
+
+  /// No description provided for @currentlyReading.
+  ///
+  /// In en, this message translates to:
+  /// **'Currently reading'**
+  String get currentlyReading;
+
+  /// No description provided for @averageDailyReading.
+  ///
+  /// In en, this message translates to:
+  /// **'Average daily reading'**
+  String get averageDailyReading;
+
+  /// No description provided for @averageSession.
+  ///
+  /// In en, this message translates to:
+  /// **'Average session'**
+  String get averageSession;
+
+  /// No description provided for @totalSessions.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading sessions'**
+  String get totalSessions;
+
+  /// No description provided for @mostActiveDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Most active day'**
+  String get mostActiveDay;
+
+  /// No description provided for @week.
+  ///
+  /// In en, this message translates to:
+  /// **'Week'**
+  String get week;
+
+  /// No description provided for @month.
+  ///
+  /// In en, this message translates to:
+  /// **'Month'**
+  String get month;
+
+  /// No description provided for @year.
+  ///
+  /// In en, this message translates to:
+  /// **'Year'**
+  String get year;
+
+  /// No description provided for @readingConsistency.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading consistency (last 14 days)'**
+  String get readingConsistency;
+
+  /// No description provided for @dailyHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily reading history'**
+  String get dailyHistory;
+
+  /// No description provided for @bookProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading progress per book'**
+  String get bookProgress;
+
+  /// No description provided for @noReadingData.
+  ///
+  /// In en, this message translates to:
+  /// **'No reading data for this period.'**
+  String get noReadingData;
+
+  /// No description provided for @startReadingForStats.
+  ///
+  /// In en, this message translates to:
+  /// **'Start reading to see your personal insights.'**
+  String get startReadingForStats;
 }
 
 class _AppLocalizationsDelegate

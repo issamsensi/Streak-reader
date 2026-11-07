@@ -166,4 +166,17 @@
   "pauseReading": "Pause",
   "resumeReading": "Resume",
   "finishReading": "Finish session"
+  ,"currentlyReading": "Currently reading"
+  ,"averageDailyReading": "Average daily reading"
+  ,"averageSession": "Average session"
+  ,"totalSessions": "Reading sessions"
+  ,"mostActiveDay": "Most active day"
+  ,"week": "Week"
+  ,"month": "Month"
+  ,"year": "Year"
+  ,"readingConsistency": "Reading consistency (last 14 days)"
+  ,"dailyHistory": "Daily reading history"
+  ,"bookProgress": "Reading progress per book"
+  ,"noReadingData": "No reading data for this period."
+  ,"startReadingForStats": "Start reading to see your personal insights."
 }

@@ -327,4 +327,44 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get finishReading => 'Finish session';
+
+  @override
+  String get currentlyReading => 'Currently reading';
+
+  @override
+  String get averageDailyReading => 'Average daily reading';
+
+  @override
+  String get averageSession => 'Average session';
+
+  @override
+  String get totalSessions => 'Reading sessions';
+
+  @override
+  String get mostActiveDay => 'Most active day';
+
+  @override
+  String get week => 'Week';
+
+  @override
+  String get month => 'Month';
+
+  @override
+  String get year => 'Year';
+
+  @override
+  String get readingConsistency => 'Reading consistency (last 14 days)';
+
+  @override
+  String get dailyHistory => 'Daily reading history';
+
+  @override
+  String get bookProgress => 'Reading progress per book';
+
+  @override
+  String get noReadingData => 'No reading data for this period.';
+
+  @override
+  String get startReadingForStats =>
+      'Start reading to see your personal insights.';
 }
