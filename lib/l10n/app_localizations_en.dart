@@ -367,4 +367,37 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get startReadingForStats =>
       'Start reading to see your personal insights.';
+
+  @override
+  String get bookmark => 'Bookmark';
+
+  @override
+  String get bookmarks => 'Bookmarks';
+
+  @override
+  String get bookmarkTitle => 'Bookmark title';
+
+  @override
+  String get bookmarkTitleHint => 'Optional title';
+
+  @override
+  String get annotations => 'Annotations';
+
+  @override
+  String get highlight => 'Highlight';
+
+  @override
+  String get highlights => 'Highlights';
+
+  @override
+  String get saveHighlight => 'Save highlight';
+
+  @override
+  String get noBookmarks => 'No bookmarks saved.';
+
+  @override
+  String get noHighlights => 'No highlights saved.';
+
+  @override
+  String get edit => 'Edit';
 }

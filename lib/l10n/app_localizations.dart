@@ -765,6 +765,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Start reading to see your personal insights.'**
   String get startReadingForStats;
+
+  /// No description provided for @bookmark.
+  ///
+  /// In en, this message translates to:
+  /// **'Bookmark'**
+  String get bookmark;
+
+  /// No description provided for @bookmarks.
+  ///
+  /// In en, this message translates to:
+  /// **'Bookmarks'**
+  String get bookmarks;
+
+  /// No description provided for @bookmarkTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Bookmark title'**
+  String get bookmarkTitle;
+
+  /// No description provided for @bookmarkTitleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional title'**
+  String get bookmarkTitleHint;
+
+  /// No description provided for @annotations.
+  ///
+  /// In en, this message translates to:
+  /// **'Annotations'**
+  String get annotations;
+
+  /// No description provided for @highlight.
+  ///
+  /// In en, this message translates to:
+  /// **'Highlight'**
+  String get highlight;
+
+  /// No description provided for @highlights.
+  ///
+  /// In en, this message translates to:
+  /// **'Highlights'**
+  String get highlights;
+
+  /// No description provided for @saveHighlight.
+  ///
+  /// In en, this message translates to:
+  /// **'Save highlight'**
+  String get saveHighlight;
+
+  /// No description provided for @noBookmarks.
+  ///
+  /// In en, this message translates to:
+  /// **'No bookmarks saved.'**
+  String get noBookmarks;
+
+  /// No description provided for @noHighlights.
+  ///
+  /// In en, this message translates to:
+  /// **'No highlights saved.'**
+  String get noHighlights;
+
+  /// No description provided for @edit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get edit;
 }
 
 class _AppLocalizationsDelegate

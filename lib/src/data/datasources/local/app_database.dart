@@ -2,18 +2,19 @@ import 'package:drift/drift.dart';
 
 import 'connection/connection.dart' as connection;
 import 'tables/books_table.dart';
+import 'tables/annotations_tables.dart';
 import 'tables/reading_sessions_table.dart';
 
 part 'app_database.g.dart';
 
-@DriftDatabase(tables: [Books, ReadingSessions])
+@DriftDatabase(tables: [Books, ReadingSessions, Bookmarks, Highlights])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(connection.openConnection());
 
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -28,6 +29,10 @@ class AppDatabase extends _$AppDatabase {
               readingSessions,
               readingSessions.activeSegmentStartedAt,
             );
+          }
+          if (from < 3) {
+            await m.createTable(bookmarks);
+            await m.createTable(highlights);
           }
         },
       );
@@ -46,6 +51,8 @@ class AppDatabase extends _$AppDatabase {
     return transaction(() async {
       await (delete(readingSessions)..where((tbl) => tbl.bookId.equals(id)))
           .go();
+      await (delete(bookmarks)..where((tbl) => tbl.bookId.equals(id))).go();
+      await (delete(highlights)..where((tbl) => tbl.bookId.equals(id))).go();
       return (delete(books)..where((tbl) => tbl.id.equals(id))).go();
     });
   }
@@ -109,4 +116,50 @@ class AppDatabase extends _$AppDatabase {
                 tbl.date.isBetweenValues(startDate, endDate) &
                 (tbl.startTime.isNull() | tbl.endTime.isNotNull())))
           .get();
+
+  // PDF annotations
+  Future<List<Bookmark>> getBookmarks(int bookId) => (select(bookmarks)
+        ..where((tbl) => tbl.bookId.equals(bookId))
+        ..orderBy([
+          (tbl) => OrderingTerm.asc(tbl.pageNumber),
+          (tbl) => OrderingTerm.asc(tbl.id),
+        ]))
+      .get();
+
+  Future<int> addBookmark(BookmarksCompanion bookmark) =>
+      into(bookmarks).insert(bookmark);
+
+  Future<bool> updateBookmark(int id, BookmarksCompanion bookmark) =>
+      (update(bookmarks)..where((tbl) => tbl.id.equals(id)))
+          .write(bookmark)
+          .then((count) => count > 0);
+
+  Future<int> deleteBookmark(int id) =>
+      (delete(bookmarks)..where((tbl) => tbl.id.equals(id))).go();
+
+  Future<Bookmark?> getBookmarkForPage(int bookId, int pageNumber) =>
+      (select(bookmarks)
+            ..where((tbl) =>
+                tbl.bookId.equals(bookId) & tbl.pageNumber.equals(pageNumber))
+            ..limit(1))
+          .getSingleOrNull();
+
+  Future<List<Highlight>> getHighlights(int bookId) => (select(highlights)
+        ..where((tbl) => tbl.bookId.equals(bookId))
+        ..orderBy([
+          (tbl) => OrderingTerm.asc(tbl.pageNumber),
+          (tbl) => OrderingTerm.asc(tbl.id),
+        ]))
+      .get();
+
+  Future<int> addHighlight(HighlightsCompanion highlight) =>
+      into(highlights).insert(highlight);
+
+  Future<bool> updateHighlight(int id, HighlightsCompanion highlight) =>
+      (update(highlights)..where((tbl) => tbl.id.equals(id)))
+          .write(highlight)
+          .then((count) => count > 0);
+
+  Future<int> deleteHighlight(int id) =>
+      (delete(highlights)..where((tbl) => tbl.id.equals(id))).go();
 }

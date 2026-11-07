@@ -371,4 +371,37 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get startReadingForStats =>
       'Commencez à lire pour voir vos statistiques.';
+
+  @override
+  String get bookmark => 'Signet';
+
+  @override
+  String get bookmarks => 'Signets';
+
+  @override
+  String get bookmarkTitle => 'Titre du signet';
+
+  @override
+  String get bookmarkTitleHint => 'Titre facultatif';
+
+  @override
+  String get annotations => 'Annotations';
+
+  @override
+  String get highlight => 'Surlignage';
+
+  @override
+  String get highlights => 'Surlignages';
+
+  @override
+  String get saveHighlight => 'Enregistrer le surlignage';
+
+  @override
+  String get noBookmarks => 'Aucun signet enregistré.';
+
+  @override
+  String get noHighlights => 'Aucun surlignage enregistré.';
+
+  @override
+  String get edit => 'Modifier';
 }

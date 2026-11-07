@@ -1,14 +1,18 @@
 import 'dart:async';
 
+import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pdfrx/pdfrx.dart';
 
+import '../../../core/di/providers.dart';
 import '../../../core/l10n/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/file_exists.dart';
+import '../../../data/datasources/local/app_database.dart';
 import '../providers/reading_session_provider.dart';
 import 'session_controls.dart';
+import 'annotations_sheet.dart';
 
 class PdfReaderScreen extends ConsumerStatefulWidget {
   final int bookId;
@@ -35,6 +39,9 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen>
   // Cached in initState so dispose() never touches `ref` after unmount.
   ReadingSessionController? _sessionController;
   bool _sessionReady = false;
+  List<Bookmark> _bookmarks = const [];
+  List<Highlight> _highlights = const [];
+  PdfTextRanges? _selection;
 
   int _currentPage = 1;
   int _pageCount = 0;
@@ -52,8 +59,165 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen>
       _sessionController = ref.read(readingSessionControllerProvider.notifier);
       _sessionController!.setBookContext(widget.bookId, _initialPage);
       unawaited(_restoreSession());
+      unawaited(_loadAnnotations());
       _startDisplayTimer();
     });
+  }
+
+  AppDatabase get _database => ref.read(databaseProvider);
+
+  Future<void> _loadAnnotations() async {
+    final results = await Future.wait([
+      _database.getBookmarks(widget.bookId),
+      _database.getHighlights(widget.bookId),
+    ]);
+    if (!mounted) return;
+    setState(() {
+      _bookmarks = results[0] as List<Bookmark>;
+      _highlights = results[1] as List<Highlight>;
+    });
+  }
+
+  Future<void> _toggleBookmark() async {
+    final l10n = context.l10n;
+    final existing =
+        await _database.getBookmarkForPage(widget.bookId, _currentPage);
+    if (existing != null) {
+      await _database.deleteBookmark(existing.id);
+    } else {
+      final title = await _askForText(
+        l10n.bookmarkTitle,
+        l10n.bookmarkTitleHint,
+      );
+      if (title == null) return;
+      await _database.addBookmark(
+        BookmarksCompanion.insert(
+          bookId: widget.bookId,
+          pageNumber: _currentPage,
+          title: drift.Value(title.trim().isEmpty ? null : title.trim()),
+        ),
+      );
+    }
+    await _loadAnnotations();
+  }
+
+  Future<String?> _askForText(String title, String hint) {
+    final textController = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: TextField(
+          controller: textController,
+          autofocus: true,
+          decoration: InputDecoration(hintText: hint),
+          onSubmitted: (_) => Navigator.of(context).pop(textController.text),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(context.l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(textController.text),
+            child: Text(context.l10n.save),
+          ),
+        ],
+      ),
+    ).whenComplete(textController.dispose);
+  }
+
+  Future<void> _saveSelectionHighlight() async {
+    final selection = _selection;
+    if (selection == null || selection.isEmpty) return;
+    final color = await _chooseHighlightColor();
+    if (color == null) return;
+    final bounds = selection.bounds;
+    await _database.addHighlight(
+      HighlightsCompanion.insert(
+        bookId: widget.bookId,
+        pageNumber: selection.pageNumber,
+        selectedText: selection.text,
+        startIndex: selection.ranges.first.start,
+        endIndex: selection.ranges.last.end,
+        left: bounds.left,
+        top: bounds.top,
+        right: bounds.right,
+        bottom: bounds.bottom,
+        colorValue: color,
+      ),
+    );
+    if (!mounted) return;
+    setState(() => _selection = null);
+    await _loadAnnotations();
+  }
+
+  Future<int?> _chooseHighlightColor() {
+    const colors = [0x66FFEB3B, 0x6655D66A, 0x6654B6FF, 0x66FF8A65];
+    return showModalBottomSheet<int>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: colors
+                .map(
+                  (color) => IconButton(
+                    tooltip: context.l10n.highlight,
+                    onPressed: () => Navigator.of(context).pop(color),
+                    icon: CircleAvatar(
+                      backgroundColor: Color(color),
+                      child: const Icon(Icons.check, color: Colors.black54),
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showAnnotations() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => AnnotationsSheet(
+        bookmarks: _bookmarks,
+        highlights: _highlights,
+        onBookmarkTap: (page) {
+          Navigator.of(context).pop();
+          unawaited(_goToPage(page));
+        },
+        onHighlightTap: (page) {
+          Navigator.of(context).pop();
+          unawaited(_goToPage(page));
+        },
+        onDeleteBookmark: (id) async {
+          await _database.deleteBookmark(id);
+          await _loadAnnotations();
+        },
+        onEditHighlight: (highlight) async {
+          final color = await _chooseHighlightColor();
+          if (color == null) return;
+          await _database.updateHighlight(
+            highlight.id,
+            HighlightsCompanion(colorValue: drift.Value(color)),
+          );
+          await _loadAnnotations();
+        },
+        onDeleteHighlight: (id) async {
+          await _database.deleteHighlight(id);
+          await _loadAnnotations();
+        },
+      ),
+    );
+  }
+
+  Future<void> _goToPage(int page) async {
+    if (!_controller.isReady) return;
+    await _controller.goToPage(pageNumber: page, duration: Duration.zero);
   }
 
   Future<void> _restoreSession() async {
@@ -144,6 +308,42 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen>
                 controller: _controller,
                 initialPageNumber: _initialPage,
                 params: PdfViewerParams(
+                  enableTextSelection: true,
+                  onTextSelectionChange: (selection) {
+                    if (!mounted) return;
+                    final selected =
+                        selection.where((range) => range.isNotEmpty);
+                    setState(() {
+                      _selection = selected.isEmpty ? null : selected.first;
+                    });
+                  },
+                  pageOverlaysBuilder: (context, pageRect, page) {
+                    return _highlights
+                        .where((highlight) =>
+                            highlight.pageNumber == page.pageNumber)
+                        .map(
+                          (highlight) => Positioned.fromRect(
+                            rect: PdfRect(
+                              highlight.left,
+                              highlight.top,
+                              highlight.right,
+                              highlight.bottom,
+                            ).toRect(
+                              page: page,
+                              scaledPageSize: pageRect.size,
+                            ),
+                            child: IgnorePointer(
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: Color(highlight.colorValue),
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList();
+                  },
                   backgroundColor: theme.colorScheme.surface,
                   loadingBannerBuilder: (context, bytesDownloaded, totalBytes) {
                     return Center(
@@ -263,6 +463,44 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen>
                     ),
                   ),
                 ),
+              ),
+            ),
+          Positioned(
+            top: 16,
+            right: 16,
+            child: Material(
+              color: Colors.black.withValues(alpha: 0.72),
+              borderRadius: BorderRadius.circular(14),
+              child: Row(
+                children: [
+                  IconButton(
+                    tooltip: context.l10n.bookmark,
+                    onPressed: _toggleBookmark,
+                    icon: Icon(
+                      _bookmarks.any((b) => b.pageNumber == _currentPage)
+                          ? Icons.bookmark
+                          : Icons.bookmark_border,
+                      color: Colors.white,
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: context.l10n.annotations,
+                    onPressed: _showAnnotations,
+                    icon: const Icon(Icons.menu_book, color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (_selection != null)
+            Positioned(
+              left: 16,
+              right: 16,
+              top: 16,
+              child: FilledButton.icon(
+                onPressed: _saveSelectionHighlight,
+                icon: const Icon(Icons.highlight),
+                label: Text(context.l10n.saveHighlight),
               ),
             ),
           if (_sessionController != null && _sessionReady)

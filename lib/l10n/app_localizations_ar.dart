@@ -366,4 +366,37 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get startReadingForStats => 'ابدأ القراءة لرؤية إحصاءاتك.';
+
+  @override
+  String get bookmark => 'إشارة مرجعية';
+
+  @override
+  String get bookmarks => 'الإشارات المرجعية';
+
+  @override
+  String get bookmarkTitle => 'عنوان الإشارة المرجعية';
+
+  @override
+  String get bookmarkTitleHint => 'عنوان اختياري';
+
+  @override
+  String get annotations => 'التعليقات والعلامات';
+
+  @override
+  String get highlight => 'تمييز';
+
+  @override
+  String get highlights => 'النصوص المميزة';
+
+  @override
+  String get saveHighlight => 'حفظ التمييز';
+
+  @override
+  String get noBookmarks => 'لا توجد إشارات مرجعية محفوظة.';
+
+  @override
+  String get noHighlights => 'لا توجد نصوص مميزة محفوظة.';
+
+  @override
+  String get edit => 'تعديل';
 }
