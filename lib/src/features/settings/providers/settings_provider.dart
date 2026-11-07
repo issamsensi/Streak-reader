@@ -6,18 +6,23 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../domain/entities/daily_goal_history.dart';
+import '../../../domain/entities/monthly_goal.dart';
 
 class AppSettings {
   final String languageCode;
   final ThemeMode themeMode;
   final int dailyGoalMinutes;
   final DailyGoalHistory dailyGoalHistory;
+  final MonthlyGoalHistory monthlyGoalHistory;
+  final Map<String, Set<int>> completedBookHistory;
 
   const AppSettings({
     this.languageCode = 'ar',
     this.themeMode = ThemeMode.system,
     this.dailyGoalMinutes = AppConstants.defaultDailyGoalMinutes,
     this.dailyGoalHistory = const DailyGoalHistory(),
+    this.monthlyGoalHistory = const MonthlyGoalHistory(),
+    this.completedBookHistory = const {},
   });
 
   Locale get locale => Locale(languageCode);
@@ -27,12 +32,16 @@ class AppSettings {
     ThemeMode? themeMode,
     int? dailyGoalMinutes,
     DailyGoalHistory? dailyGoalHistory,
+    MonthlyGoalHistory? monthlyGoalHistory,
+    Map<String, Set<int>>? completedBookHistory,
   }) {
     return AppSettings(
       languageCode: languageCode ?? this.languageCode,
       themeMode: themeMode ?? this.themeMode,
       dailyGoalMinutes: dailyGoalMinutes ?? this.dailyGoalMinutes,
       dailyGoalHistory: dailyGoalHistory ?? this.dailyGoalHistory,
+      monthlyGoalHistory: monthlyGoalHistory ?? this.monthlyGoalHistory,
+      completedBookHistory: completedBookHistory ?? this.completedBookHistory,
     );
   }
 }
@@ -41,6 +50,8 @@ class SettingsController extends StateNotifier<AppSettings> {
   static const _languageKey = 'settings_language_code';
   static const _themeKey = 'settings_theme_mode';
   static const _dailyGoalHistoryKey = 'settings_daily_goal_history';
+  static const _monthlyGoalHistoryKey = 'settings_monthly_goal_history';
+  static const _completedBookHistoryKey = 'settings_completed_book_history';
 
   final DateTime Function() _now;
   late final Future<void> initialized;
@@ -63,6 +74,10 @@ class SettingsController extends StateNotifier<AppSettings> {
     final language = prefs.getString(_languageKey);
     final theme = prefs.getString(_themeKey);
     final history = _readGoalHistory(prefs.getString(_dailyGoalHistoryKey));
+    final monthlyHistory =
+        _readMonthlyGoalHistory(prefs.getString(_monthlyGoalHistoryKey));
+    final completedHistory =
+        _readCompletedBookHistory(prefs.getString(_completedBookHistoryKey));
     state = AppSettings(
       languageCode: switch (language) {
         'ar' || 'en' || 'fr' => language!,
@@ -75,7 +90,38 @@ class SettingsController extends StateNotifier<AppSettings> {
       },
       dailyGoalMinutes: history.minutesForDate(_now()),
       dailyGoalHistory: history,
+      monthlyGoalHistory: monthlyHistory,
+      completedBookHistory: completedHistory,
     );
+  }
+
+  MonthlyGoalHistory _readMonthlyGoalHistory(String? raw) {
+    if (raw == null || raw.isEmpty) return const MonthlyGoalHistory();
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is Map) return MonthlyGoalHistory.fromMap(decoded);
+    } on FormatException {
+      // Corrupted preferences should not prevent the app from starting.
+    }
+    return const MonthlyGoalHistory();
+  }
+
+  Map<String, Set<int>> _readCompletedBookHistory(String? raw) {
+    if (raw == null || raw.isEmpty) return const {};
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) return const {};
+      return {
+        for (final entry in decoded.entries)
+          if (entry.key is String && entry.value is List)
+            entry.key as String: {
+              for (final id in entry.value)
+                if (id is num) id.toInt(),
+            },
+      };
+    } on FormatException {
+      return const {};
+    }
   }
 
   DailyGoalHistory _readGoalHistory(String? raw) {
@@ -112,6 +158,29 @@ class SettingsController extends StateNotifier<AppSettings> {
     );
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_dailyGoalHistoryKey, jsonEncode(history.toMap()));
+  }
+
+  Future<void> setMonthlyGoal(DateTime month, MonthlyGoal goal) async {
+    final history = state.monthlyGoalHistory.withGoalFor(month, goal);
+    state = state.copyWith(monthlyGoalHistory: history);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_monthlyGoalHistoryKey, jsonEncode(history.toMap()));
+  }
+
+  Future<void> recordBookCompletion(int bookId, DateTime date) async {
+    if (bookId <= 0) return;
+    final key = MonthlyGoalHistory.monthKey(date);
+    final history = {
+      for (final entry in state.completedBookHistory.entries)
+        entry.key: {...entry.value},
+    };
+    history.putIfAbsent(key, () => <int>{}).add(bookId);
+    state = state.copyWith(completedBookHistory: history);
+    final serializable = {
+      for (final entry in history.entries) entry.key: entry.value.toList(),
+    };
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_completedBookHistoryKey, jsonEncode(serializable));
   }
 }
 

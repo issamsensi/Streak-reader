@@ -83,5 +83,21 @@
   "customGoalInvalid": "Saisissez un nombre entre {min} et {max}.",
   "dailyGoalProgress": "{minutes} / {goal} min",
   "dailyGoalReached": "Objectif quotidien atteint !",
-  "dailyGoalRemaining": "Encore {minutes} min"
+  "dailyGoalRemaining": "Encore {minutes} min",
+  "monthlyGoals": "Objectifs de lecture mensuels",
+  "monthlyGoalDescription": "Suivez les minutes, pages ou livres terminés chaque mois.",
+  "configure": "Configurer",
+  "monthlyMinutes": "Minutes de lecture",
+  "monthlyPages": "Pages lues",
+  "monthlyBooks": "Livres terminés",
+  "monthlyGoalSuggestions": "Suggestions en minutes : 300, 600, 1 000 ou 1 500",
+  "noMonthlyGoals": "Configurez un ou plusieurs objectifs pour ce mois.",
+  "monthlyGoalsAchieved": "Objectifs mensuels atteints !",
+  "monthlyGoalRemaining": "Encore {remaining} {unit}",
+  "@monthlyGoalRemaining": {
+    "placeholders": {
+      "remaining": {"type": "int"},
+      "unit": {"type": "String"}
+    }
+  }
 }

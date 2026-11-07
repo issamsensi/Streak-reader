@@ -145,5 +145,21 @@
         "type": "int"
       }
     }
+  },
+  "monthlyGoals": "Monthly reading goals",
+  "monthlyGoalDescription": "Track minutes, pages, or completed books each month.",
+  "configure": "Configure",
+  "monthlyMinutes": "Reading minutes",
+  "monthlyPages": "Pages read",
+  "monthlyBooks": "Completed books",
+  "monthlyGoalSuggestions": "Suggested minute targets: 300, 600, 1,000, or 1,500",
+  "noMonthlyGoals": "Set one or more goals to track this month.",
+  "monthlyGoalsAchieved": "Monthly goals achieved!",
+  "monthlyGoalRemaining": "{remaining} {unit} remaining",
+  "@monthlyGoalRemaining": {
+    "placeholders": {
+      "remaining": {"type": "int"},
+      "unit": {"type": "String"}
+    }
   }
 }

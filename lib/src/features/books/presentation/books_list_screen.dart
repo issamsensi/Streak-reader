@@ -12,6 +12,7 @@ import '../../calendar/presentation/reading_calendar_screen.dart';
 import '../../daily_goal/presentation/daily_goal_card.dart';
 import '../../reader/presentation/pdf_reader_screen.dart';
 import '../../settings/presentation/settings_screen.dart';
+import '../../settings/providers/settings_provider.dart';
 import '../../stats/presentation/stats_screen.dart';
 import '../../stats/providers/stats_provider.dart';
 import '../providers/books_providers.dart';
@@ -89,6 +90,11 @@ class BooksListScreen extends ConsumerWidget {
   ) async {
     try {
       await ref.read(booksRepositoryProvider).markCompleted(book.id, completed);
+      if (completed) {
+        await ref
+            .read(settingsProvider.notifier)
+            .recordBookCompletion(book.id, DateTime.now());
+      }
     } catch (_) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

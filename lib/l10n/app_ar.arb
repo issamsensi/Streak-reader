@@ -83,5 +83,21 @@
   "customGoalInvalid": "أدخل عدداً بين {min} و{max}.",
   "dailyGoalProgress": "{minutes} / {goal} دقيقة",
   "dailyGoalReached": "تم إنجاز الهدف اليومي!",
-  "dailyGoalRemaining": "متبقٍ {minutes} دقيقة"
+  "dailyGoalRemaining": "متبقٍ {minutes} دقيقة",
+  "monthlyGoals": "أهداف القراءة الشهرية",
+  "monthlyGoalDescription": "تتبع الدقائق أو الصفحات أو الكتب المكتملة كل شهر.",
+  "configure": "إعداد",
+  "monthlyMinutes": "دقائق القراءة",
+  "monthlyPages": "الصفحات المقروءة",
+  "monthlyBooks": "الكتب المكتملة",
+  "monthlyGoalSuggestions": "أهداف الدقائق المقترحة: 300 أو 600 أو 1,000 أو 1,500",
+  "noMonthlyGoals": "أضف هدفاً واحداً أو أكثر لتتبع هذا الشهر.",
+  "monthlyGoalsAchieved": "تم تحقيق الأهداف الشهرية!",
+  "monthlyGoalRemaining": "متبقٍ {remaining} {unit}",
+  "@monthlyGoalRemaining": {
+    "placeholders": {
+      "remaining": {"type": "int"},
+      "unit": {"type": "String"}
+    }
+  }
 }

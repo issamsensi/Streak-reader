@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/l10n/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../domain/entities/monthly_goal.dart';
 import '../providers/settings_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -28,6 +29,22 @@ class SettingsScreen extends ConsumerWidget {
     );
     if (minutes == null) return;
     await ref.read(settingsProvider.notifier).setDailyGoal(minutes);
+  }
+
+  Future<void> _showMonthlyGoalsDialog(
+    BuildContext context,
+    WidgetRef ref,
+    MonthlyGoal initial,
+  ) async {
+    final goal = await showDialog<MonthlyGoal>(
+      context: context,
+      builder: (_) => _MonthlyGoalsDialog(initial: initial),
+    );
+    if (goal != null) {
+      await ref
+          .read(settingsProvider.notifier)
+          .setMonthlyGoal(DateTime.now(), goal);
+    }
   }
 
   @override
@@ -112,6 +129,34 @@ class SettingsScreen extends ConsumerWidget {
                     style: theme.textTheme.labelMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          _SettingsSection(
+            icon: Icons.insights_rounded,
+            title: l10n.monthlyGoals,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(8, 4, 8, 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      l10n.monthlyGoalDescription,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => _showMonthlyGoalsDialog(
+                      context,
+                      ref,
+                      settings.monthlyGoalHistory.goalFor(DateTime.now()),
+                    ),
+                    child: Text(l10n.configure),
                   ),
                 ],
               ),
@@ -262,6 +307,126 @@ class _SettingsSection extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _MonthlyGoalsDialog extends StatefulWidget {
+  final MonthlyGoal initial;
+
+  const _MonthlyGoalsDialog({required this.initial});
+
+  @override
+  State<_MonthlyGoalsDialog> createState() => _MonthlyGoalsDialogState();
+}
+
+class _MonthlyGoalsDialogState extends State<_MonthlyGoalsDialog> {
+  late final Map<MonthlyGoalType, TextEditingController> _controllers;
+  late final Set<MonthlyGoalType> _selected;
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = widget.initial.targets.keys.toSet();
+    _controllers = {
+      for (final type in MonthlyGoalType.values)
+        type: TextEditingController(
+          text: '${widget.initial.targets[type] ?? _suggested(type)}',
+        ),
+    };
+  }
+
+  static int _suggested(MonthlyGoalType type) => switch (type) {
+        MonthlyGoalType.minutes => 600,
+        MonthlyGoalType.pages => 100,
+        MonthlyGoalType.books => 1,
+      };
+
+  @override
+  void dispose() {
+    for (final controller in _controllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    return AlertDialog(
+      title: Text(l10n.monthlyGoals),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final type in MonthlyGoalType.values)
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                value: _selected.contains(type),
+                title: Text(switch (type) {
+                  MonthlyGoalType.minutes => l10n.monthlyMinutes,
+                  MonthlyGoalType.pages => l10n.monthlyPages,
+                  MonthlyGoalType.books => l10n.monthlyBooks,
+                }),
+                onChanged: (selected) => setState(() {
+                  if (selected == true) {
+                    _selected.add(type);
+                  } else {
+                    _selected.remove(type);
+                  }
+                }),
+              ),
+            for (final type in _selected)
+              TextField(
+                controller: _controllers[type],
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: switch (type) {
+                    MonthlyGoalType.minutes => l10n.monthlyMinutes,
+                    MonthlyGoalType.pages => l10n.monthlyPages,
+                    MonthlyGoalType.books => l10n.monthlyBooks,
+                  },
+                ),
+              ),
+            const SizedBox(height: 8),
+            Text(
+              l10n.monthlyGoalSuggestions,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            Wrap(
+              spacing: 6,
+              children: [
+                for (final value in [300, 600, 1000, 1500])
+                  ActionChip(
+                    label: Text('$value'),
+                    onPressed: () => setState(
+                      () => _controllers[MonthlyGoalType.minutes]!.text =
+                          '$value',
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l10n.cancel),
+        ),
+        FilledButton(
+          onPressed: () {
+            final targets = <MonthlyGoalType, int>{};
+            for (final type in _selected) {
+              final value = int.tryParse(_controllers[type]!.text);
+              if (value == null || value <= 0) return;
+              targets[type] = value;
+            }
+            Navigator.of(context).pop(MonthlyGoal(targets));
+          },
+          child: Text(l10n.save),
+        ),
+      ],
     );
   }
 }

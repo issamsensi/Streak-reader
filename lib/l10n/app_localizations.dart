@@ -603,6 +603,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{minutes} min left'**
   String dailyGoalRemaining(int minutes);
+
+  /// No description provided for @monthlyGoals.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly reading goals'**
+  String get monthlyGoals;
+
+  /// No description provided for @monthlyGoalDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Track minutes, pages, or completed books each month.'**
+  String get monthlyGoalDescription;
+
+  /// No description provided for @configure.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure'**
+  String get configure;
+
+  /// No description provided for @monthlyMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading minutes'**
+  String get monthlyMinutes;
+
+  /// No description provided for @monthlyPages.
+  ///
+  /// In en, this message translates to:
+  /// **'Pages read'**
+  String get monthlyPages;
+
+  /// No description provided for @monthlyBooks.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed books'**
+  String get monthlyBooks;
+
+  /// No description provided for @monthlyGoalSuggestions.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested minute targets: 300, 600, 1,000, or 1,500'**
+  String get monthlyGoalSuggestions;
+
+  /// No description provided for @noMonthlyGoals.
+  ///
+  /// In en, this message translates to:
+  /// **'Set one or more goals to track this month.'**
+  String get noMonthlyGoals;
+
+  /// No description provided for @monthlyGoalsAchieved.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly goals achieved!'**
+  String get monthlyGoalsAchieved;
+
+  /// No description provided for @monthlyGoalRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'{remaining} {unit} remaining'**
+  String monthlyGoalRemaining(int remaining, String unit);
 }
 
 class _AppLocalizationsDelegate

@@ -281,4 +281,38 @@ class AppLocalizationsEn extends AppLocalizations {
   String dailyGoalRemaining(int minutes) {
     return '$minutes min left';
   }
+
+  @override
+  String get monthlyGoals => 'Monthly reading goals';
+
+  @override
+  String get monthlyGoalDescription =>
+      'Track minutes, pages, or completed books each month.';
+
+  @override
+  String get configure => 'Configure';
+
+  @override
+  String get monthlyMinutes => 'Reading minutes';
+
+  @override
+  String get monthlyPages => 'Pages read';
+
+  @override
+  String get monthlyBooks => 'Completed books';
+
+  @override
+  String get monthlyGoalSuggestions =>
+      'Suggested minute targets: 300, 600, 1,000, or 1,500';
+
+  @override
+  String get noMonthlyGoals => 'Set one or more goals to track this month.';
+
+  @override
+  String get monthlyGoalsAchieved => 'Monthly goals achieved!';
+
+  @override
+  String monthlyGoalRemaining(int remaining, String unit) {
+    return '$remaining $unit remaining';
+  }
 }

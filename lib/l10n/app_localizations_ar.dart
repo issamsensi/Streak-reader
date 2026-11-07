@@ -281,4 +281,38 @@ class AppLocalizationsAr extends AppLocalizations {
   String dailyGoalRemaining(int minutes) {
     return 'متبقٍ $minutes دقيقة';
   }
+
+  @override
+  String get monthlyGoals => 'أهداف القراءة الشهرية';
+
+  @override
+  String get monthlyGoalDescription =>
+      'تتبع الدقائق أو الصفحات أو الكتب المكتملة كل شهر.';
+
+  @override
+  String get configure => 'إعداد';
+
+  @override
+  String get monthlyMinutes => 'دقائق القراءة';
+
+  @override
+  String get monthlyPages => 'الصفحات المقروءة';
+
+  @override
+  String get monthlyBooks => 'الكتب المكتملة';
+
+  @override
+  String get monthlyGoalSuggestions =>
+      'أهداف الدقائق المقترحة: 300 أو 600 أو 1,000 أو 1,500';
+
+  @override
+  String get noMonthlyGoals => 'أضف هدفاً واحداً أو أكثر لتتبع هذا الشهر.';
+
+  @override
+  String get monthlyGoalsAchieved => 'تم تحقيق الأهداف الشهرية!';
+
+  @override
+  String monthlyGoalRemaining(int remaining, String unit) {
+    return 'متبقٍ $remaining $unit';
+  }
 }

@@ -284,4 +284,39 @@ class AppLocalizationsFr extends AppLocalizations {
   String dailyGoalRemaining(int minutes) {
     return 'Encore $minutes min';
   }
+
+  @override
+  String get monthlyGoals => 'Objectifs de lecture mensuels';
+
+  @override
+  String get monthlyGoalDescription =>
+      'Suivez les minutes, pages ou livres terminés chaque mois.';
+
+  @override
+  String get configure => 'Configurer';
+
+  @override
+  String get monthlyMinutes => 'Minutes de lecture';
+
+  @override
+  String get monthlyPages => 'Pages lues';
+
+  @override
+  String get monthlyBooks => 'Livres terminés';
+
+  @override
+  String get monthlyGoalSuggestions =>
+      'Suggestions en minutes : 300, 600, 1 000 ou 1 500';
+
+  @override
+  String get noMonthlyGoals =>
+      'Configurez un ou plusieurs objectifs pour ce mois.';
+
+  @override
+  String get monthlyGoalsAchieved => 'Objectifs mensuels atteints !';
+
+  @override
+  String monthlyGoalRemaining(int remaining, String unit) {
+    return 'Encore $remaining $unit';
+  }
 }

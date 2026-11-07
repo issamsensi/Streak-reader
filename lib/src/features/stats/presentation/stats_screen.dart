@@ -6,6 +6,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/streak_banner.dart';
 import '../providers/stats_provider.dart';
+import '../../monthly_goal/presentation/monthly_progress_dashboard.dart';
 
 class StatsScreen extends ConsumerWidget {
   const StatsScreen({super.key});
@@ -24,6 +25,8 @@ class StatsScreen extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
             children: [
               StreakBanner(stats: stats),
+              const SizedBox(height: 28),
+              const MonthlyProgressDashboard(),
               const SizedBox(height: 28),
               Text(l10n.readingOverview, style: theme.textTheme.titleMedium),
               const SizedBox(height: 12),
