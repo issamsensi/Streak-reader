@@ -8,6 +8,7 @@ void main() {
         title: 'Book $id',
         lastPage: 0,
         isCompleted: completed,
+        readingStatus: completed ? 'completed' : 'want_to_read',
         createdAt: DateTime(2026),
       );
 

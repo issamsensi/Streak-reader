@@ -6,7 +6,7 @@ import 'package:streak_reader/src/domain/usecases/generate_reading_insights.dart
 void main() {
   test('does not invent insights without reading records', () {
     final result = const GenerateReadingInsights()(
-      statistics: ReadingStatistics(),
+      statistics: const ReadingStatistics(),
       now: DateTime(2026, 1, 1),
     );
 
@@ -28,7 +28,7 @@ void main() {
       readingStatus: 'currently_reading',
       createdAt: DateTime(2026, 1, 1),
     );
-    final session = ReadingSession(
+    const session = ReadingSession(
       id: 1,
       bookId: 1,
       date: '2026-01-01',

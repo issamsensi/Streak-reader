@@ -452,14 +452,6 @@ class _BooksListScreenState extends ConsumerState<BooksListScreen> {
         title: Text(l10n.booksLibrary),
         actions: [
           IconButton.filledTonal(
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const ReadingExportScreen()),
-            ),
-            icon: const Icon(Icons.ios_share_rounded),
-            tooltip: 'Export',
-          ),
-          const SizedBox(width: 8),
-          IconButton.filledTonal(
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const StatsScreen()),
@@ -469,22 +461,49 @@ class _BooksListScreenState extends ConsumerState<BooksListScreen> {
             tooltip: l10n.statistics,
           ),
           const SizedBox(width: 8),
-          IconButton.filledTonal(
-            onPressed: _createCollection,
-            icon: const Icon(Icons.create_new_folder_outlined),
-            tooltip: l10n.newCollection,
-          ),
-          const SizedBox(width: 8),
-          IconButton.filledTonal(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const ReadingJournalScreen(),
-                ),
-              );
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_horiz),
+            tooltip: 'More',
+            onSelected: (value) {
+              if (value == 'export') {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const ReadingExportScreen(),
+                  ),
+                );
+              } else if (value == 'collection') {
+                _createCollection();
+              } else {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const ReadingJournalScreen(),
+                  ),
+                );
+              }
             },
-            icon: const Icon(Icons.auto_stories_rounded),
-            tooltip: l10n.readingJournal,
+            itemBuilder: (_) => [
+              const PopupMenuItem(
+                value: 'export',
+                child: ListTile(
+                  leading: Icon(Icons.ios_share_rounded),
+                  title: Text('Export'),
+                ),
+              ),
+              PopupMenuItem(
+                value: 'collection',
+                child: ListTile(
+                  leading: const Icon(Icons.create_new_folder_outlined),
+                  title: Text(l10n.newCollection),
+                ),
+              ),
+              PopupMenuItem(
+                value: 'journal',
+                child: ListTile(
+                  leading: const Icon(Icons.auto_stories_rounded),
+                  title: Text(l10n.readingJournal),
+                ),
+              ),
+            ],
           ),
           const SizedBox(width: 8),
           IconButton.filledTonal(
@@ -722,6 +741,7 @@ class _BookCard extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _BookCover(title: book.title, hasFile: hasFile),
               const SizedBox(width: 14),

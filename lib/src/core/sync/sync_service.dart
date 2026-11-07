@@ -44,9 +44,12 @@ class SyncService {
   Future<void> _push() async {
     final pending = await database.getPendingSyncRecords();
     if (pending.isEmpty) return;
+    final userId = currentUser?.id;
+    if (userId == null) return;
     final rows = pending
         .map(
           (record) => {
+            'user_id': userId,
             'record_key': record.recordKey,
             'entity_type': record.entityType,
             'payload': jsonDecode(record.payload),
