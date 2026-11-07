@@ -6,6 +6,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/l10n/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/entities/monthly_goal.dart';
+import '../../../domain/entities/reading_reminder.dart';
 import '../providers/settings_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -47,6 +48,131 @@ class SettingsScreen extends ConsumerWidget {
     }
   }
 
+  Future<void> _showReminderDialog(
+    BuildContext context,
+    WidgetRef ref,
+    ReadingReminderSettings initial,
+  ) async {
+    var draft = initial;
+    final messageController = TextEditingController(text: initial.message);
+    final result = await showDialog<ReadingReminderSettings>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text(context.l10n.readingReminder),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(context.l10n.reminderEnabled),
+                  value: draft.enabled,
+                  onChanged: (value) => setState(
+                    () => draft = draft.copyWith(enabled: value),
+                  ),
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(context.l10n.reminderTime),
+                  subtitle: Text(
+                    TimeOfDay(hour: draft.hour, minute: draft.minute)
+                        .format(context),
+                  ),
+                  trailing: const Icon(Icons.schedule_rounded),
+                  onTap: () async {
+                    final time = await showTimePicker(
+                      context: context,
+                      initialTime:
+                          TimeOfDay(hour: draft.hour, minute: draft.minute),
+                    );
+                    if (time != null) {
+                      setState(
+                        () => draft = draft.copyWith(
+                          hour: time.hour,
+                          minute: time.minute,
+                        ),
+                      );
+                    }
+                  },
+                ),
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Text(
+                    context.l10n.reminderDays,
+                    style: Theme.of(context).textTheme.labelLarge,
+                  ),
+                ),
+                Wrap(
+                  spacing: 6,
+                  children: [
+                    for (var day = 1; day <= 7; day++)
+                      FilterChip(
+                        label: Text(_dayLabel(context, day)),
+                        selected: draft.days.contains(day),
+                        onSelected: (selected) {
+                          final days = {...draft.days};
+                          if (selected) {
+                            days.add(day);
+                          } else {
+                            days.remove(day);
+                          }
+                          setState(() => draft = draft.copyWith(days: days));
+                        },
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: messageController,
+                  maxLength: 120,
+                  decoration: InputDecoration(
+                    labelText: context.l10n.reminderMessage,
+                    hintText: context.l10n.reminderMessageHint,
+                  ),
+                ),
+                Text(
+                  context.l10n.reminderPermissionHint,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(context.l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () {
+                if (draft.enabled && draft.days.isEmpty) return;
+                Navigator.pop(
+                  dialogContext,
+                  draft.copyWith(message: messageController.text),
+                );
+              },
+              child: Text(context.l10n.save),
+            ),
+          ],
+        ),
+      ),
+    );
+    messageController.dispose();
+    if (result != null) {
+      await ref.read(settingsProvider.notifier).setReadingReminder(result);
+    }
+  }
+
+  String _dayLabel(BuildContext context, int day) => switch (day) {
+        1 => context.l10n.reminderMonday,
+        2 => context.l10n.reminderTuesday,
+        3 => context.l10n.reminderWednesday,
+        4 => context.l10n.reminderThursday,
+        5 => context.l10n.reminderFriday,
+        6 => context.l10n.reminderSaturday,
+        _ => context.l10n.reminderSunday,
+      };
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
@@ -80,6 +206,32 @@ class SettingsScreen extends ConsumerWidget {
                       ),
                     ),
                 ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          _SettingsSection(
+            icon: Icons.notifications_active_outlined,
+            title: l10n.readingReminder,
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+              title: Text(
+                settings.readingReminder.enabled
+                    ? l10n.reminderEnabled
+                    : l10n.reminderDisabled,
+              ),
+              subtitle: Text(
+                '${TimeOfDay(
+                  hour: settings.readingReminder.hour,
+                  minute: settings.readingReminder.minute,
+                ).format(context)} · '
+                '${settings.readingReminder.days.length} ${l10n.reminderDays}',
+              ),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () => _showReminderDialog(
+                context,
+                ref,
+                settings.readingReminder,
               ),
             ),
           ),

@@ -21,6 +21,52 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settings => 'Settings';
 
   @override
+  String get readingReminder => 'Reading reminder';
+
+  @override
+  String get reminderEnabled => 'Reminders enabled';
+
+  @override
+  String get reminderDisabled => 'Reminders disabled';
+
+  @override
+  String get reminderTime => 'Reminder time';
+
+  @override
+  String get reminderDays => 'days';
+
+  @override
+  String get reminderMessage => 'Notification message';
+
+  @override
+  String get reminderMessageHint => 'Time for your daily reading session.';
+
+  @override
+  String get reminderPermissionHint =>
+      'Your device may ask permission before showing notifications.';
+
+  @override
+  String get reminderMonday => 'Mon';
+
+  @override
+  String get reminderTuesday => 'Tue';
+
+  @override
+  String get reminderWednesday => 'Wed';
+
+  @override
+  String get reminderThursday => 'Thu';
+
+  @override
+  String get reminderFriday => 'Fri';
+
+  @override
+  String get reminderSaturday => 'Sat';
+
+  @override
+  String get reminderSunday => 'Sun';
+
+  @override
   String get language => 'Language';
 
   @override

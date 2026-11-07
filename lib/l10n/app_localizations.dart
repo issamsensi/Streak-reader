@@ -124,6 +124,96 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get settings;
 
+  /// No description provided for @readingReminder.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading reminder'**
+  String get readingReminder;
+
+  /// No description provided for @reminderEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminders enabled'**
+  String get reminderEnabled;
+
+  /// No description provided for @reminderDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminders disabled'**
+  String get reminderDisabled;
+
+  /// No description provided for @reminderTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminder time'**
+  String get reminderTime;
+
+  /// No description provided for @reminderDays.
+  ///
+  /// In en, this message translates to:
+  /// **'days'**
+  String get reminderDays;
+
+  /// No description provided for @reminderMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification message'**
+  String get reminderMessage;
+
+  /// No description provided for @reminderMessageHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Time for your daily reading session.'**
+  String get reminderMessageHint;
+
+  /// No description provided for @reminderPermissionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Your device may ask permission before showing notifications.'**
+  String get reminderPermissionHint;
+
+  /// No description provided for @reminderMonday.
+  ///
+  /// In en, this message translates to:
+  /// **'Mon'**
+  String get reminderMonday;
+
+  /// No description provided for @reminderTuesday.
+  ///
+  /// In en, this message translates to:
+  /// **'Tue'**
+  String get reminderTuesday;
+
+  /// No description provided for @reminderWednesday.
+  ///
+  /// In en, this message translates to:
+  /// **'Wed'**
+  String get reminderWednesday;
+
+  /// No description provided for @reminderThursday.
+  ///
+  /// In en, this message translates to:
+  /// **'Thu'**
+  String get reminderThursday;
+
+  /// No description provided for @reminderFriday.
+  ///
+  /// In en, this message translates to:
+  /// **'Fri'**
+  String get reminderFriday;
+
+  /// No description provided for @reminderSaturday.
+  ///
+  /// In en, this message translates to:
+  /// **'Sat'**
+  String get reminderSaturday;
+
+  /// No description provided for @reminderSunday.
+  ///
+  /// In en, this message translates to:
+  /// **'Sun'**
+  String get reminderSunday;
+
   /// No description provided for @language.
   ///
   /// In en, this message translates to:

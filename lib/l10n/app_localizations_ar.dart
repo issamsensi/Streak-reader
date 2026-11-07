@@ -21,6 +21,51 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settings => 'الإعدادات';
 
   @override
+  String get readingReminder => 'تذكير القراءة';
+
+  @override
+  String get reminderEnabled => 'التذكيرات مفعلة';
+
+  @override
+  String get reminderDisabled => 'التذكيرات متوقفة';
+
+  @override
+  String get reminderTime => 'وقت التذكير';
+
+  @override
+  String get reminderDays => 'أيام';
+
+  @override
+  String get reminderMessage => 'رسالة الإشعار';
+
+  @override
+  String get reminderMessageHint => 'حان وقت جلسة القراءة اليومية.';
+
+  @override
+  String get reminderPermissionHint => 'قد يطلب جهازك الإذن قبل عرض الإشعارات.';
+
+  @override
+  String get reminderMonday => 'الإثنين';
+
+  @override
+  String get reminderTuesday => 'الثلاثاء';
+
+  @override
+  String get reminderWednesday => 'الأربعاء';
+
+  @override
+  String get reminderThursday => 'الخميس';
+
+  @override
+  String get reminderFriday => 'الجمعة';
+
+  @override
+  String get reminderSaturday => 'السبت';
+
+  @override
+  String get reminderSunday => 'الأحد';
+
+  @override
   String get language => 'اللغة';
 
   @override

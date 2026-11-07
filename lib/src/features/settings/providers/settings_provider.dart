@@ -7,6 +7,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../domain/entities/daily_goal_history.dart';
 import '../../../domain/entities/monthly_goal.dart';
+import '../../../domain/entities/reading_reminder.dart';
+import '../../../core/notifications/reading_reminder_service.dart';
 
 class AppSettings {
   final String languageCode;
@@ -15,6 +17,7 @@ class AppSettings {
   final DailyGoalHistory dailyGoalHistory;
   final MonthlyGoalHistory monthlyGoalHistory;
   final Map<String, Set<int>> completedBookHistory;
+  final ReadingReminderSettings readingReminder;
 
   const AppSettings({
     this.languageCode = 'ar',
@@ -23,6 +26,7 @@ class AppSettings {
     this.dailyGoalHistory = const DailyGoalHistory(),
     this.monthlyGoalHistory = const MonthlyGoalHistory(),
     this.completedBookHistory = const {},
+    this.readingReminder = const ReadingReminderSettings(),
   });
 
   Locale get locale => Locale(languageCode);
@@ -34,6 +38,7 @@ class AppSettings {
     DailyGoalHistory? dailyGoalHistory,
     MonthlyGoalHistory? monthlyGoalHistory,
     Map<String, Set<int>>? completedBookHistory,
+    ReadingReminderSettings? readingReminder,
   }) {
     return AppSettings(
       languageCode: languageCode ?? this.languageCode,
@@ -42,6 +47,7 @@ class AppSettings {
       dailyGoalHistory: dailyGoalHistory ?? this.dailyGoalHistory,
       monthlyGoalHistory: monthlyGoalHistory ?? this.monthlyGoalHistory,
       completedBookHistory: completedBookHistory ?? this.completedBookHistory,
+      readingReminder: readingReminder ?? this.readingReminder,
     );
   }
 }
@@ -52,6 +58,7 @@ class SettingsController extends StateNotifier<AppSettings> {
   static const _dailyGoalHistoryKey = 'settings_daily_goal_history';
   static const _monthlyGoalHistoryKey = 'settings_monthly_goal_history';
   static const _completedBookHistoryKey = 'settings_completed_book_history';
+  static const _readingReminderKey = 'settings_reading_reminder';
 
   final DateTime Function() _now;
   late final Future<void> initialized;
@@ -78,6 +85,7 @@ class SettingsController extends StateNotifier<AppSettings> {
         _readMonthlyGoalHistory(prefs.getString(_monthlyGoalHistoryKey));
     final completedHistory =
         _readCompletedBookHistory(prefs.getString(_completedBookHistoryKey));
+    final reminder = _readReminder(prefs.getString(_readingReminderKey));
     state = AppSettings(
       languageCode: switch (language) {
         'ar' || 'en' || 'fr' => language!,
@@ -92,7 +100,19 @@ class SettingsController extends StateNotifier<AppSettings> {
       dailyGoalHistory: history,
       monthlyGoalHistory: monthlyHistory,
       completedBookHistory: completedHistory,
+      readingReminder: reminder,
     );
+  }
+
+  ReadingReminderSettings _readReminder(String? raw) {
+    if (raw == null || raw.isEmpty) return const ReadingReminderSettings();
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is Map) return ReadingReminderSettings.fromMap(decoded);
+    } on FormatException {
+      // Corrupted preferences should not prevent the app from starting.
+    }
+    return const ReadingReminderSettings();
   }
 
   MonthlyGoalHistory _readMonthlyGoalHistory(String? raw) {
@@ -181,6 +201,17 @@ class SettingsController extends StateNotifier<AppSettings> {
     };
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_completedBookHistoryKey, jsonEncode(serializable));
+  }
+
+  Future<void> setReadingReminder(ReadingReminderSettings reminder) async {
+    if (reminder.days.isEmpty && reminder.enabled) return;
+    state = state.copyWith(readingReminder: reminder);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_readingReminderKey, jsonEncode(reminder.toMap()));
+    await ReadingReminderService.instance.configure(
+      reminder,
+      goalCompleted: false,
+    );
   }
 }
 
