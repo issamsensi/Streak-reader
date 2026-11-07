@@ -2,10 +2,13 @@ import 'dart:async';
 
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pdfrx/pdfrx.dart';
 
 import '../../../core/di/providers.dart';
+import '../../../domain/entities/focus_mode_preferences.dart';
+import '../../settings/providers/settings_provider.dart';
 import '../../../core/l10n/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/file_exists.dart';
@@ -49,6 +52,14 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen>
   int _currentPage = 1;
   int _pageCount = 0;
 
+  // Focus Mode chrome. Pure visibility state: toggling it never touches
+  // the reading session controller.
+  ReaderChrome _chrome = ReaderChrome.initial(const FocusModePreferences());
+  Timer? _autoHideTimer;
+  Offset? _tapDownPosition;
+  DateTime? _tapDownTime;
+  bool _tapDownHadSelection = false;
+
   // Books store lastPage as a 1-based page (0 = not started yet).
   int get _initialPage => widget.initialPage > 0 ? widget.initialPage : 1;
 
@@ -63,8 +74,75 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen>
       _sessionController!.setBookContext(widget.bookId, _initialPage);
       unawaited(_restoreSession());
       unawaited(_loadAnnotations());
+      unawaited(_applyFocusDefault());
       _startDisplayTimer();
     });
+  }
+
+  /// Applies the persisted "open in Focus Mode" preference once, after the
+  /// settings store has loaded.
+  Future<void> _applyFocusDefault() async {
+    await ref.read(settingsProvider.notifier).initialized;
+    if (!mounted) return;
+    setState(() {
+      _chrome = ReaderChrome.initial(ref.read(settingsProvider).focusMode);
+    });
+    _applySystemUi();
+  }
+
+  void _applySystemUi() {
+    if (_chrome.isFocus) {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    } else {
+      SystemChrome.setEnabledSystemUIMode(
+        SystemUiMode.manual,
+        overlays: SystemUiOverlay.values,
+      );
+    }
+  }
+
+  void _setFocus(bool focus) {
+    _autoHideTimer?.cancel();
+    setState(() => focus ? _chrome.enterFocus() : _chrome.exitFocus());
+    _applySystemUi();
+  }
+
+  void _onTapGesture(FocusTapBehavior behavior) {
+    final scheduleAutoHide = _chrome.onTap(behavior);
+    setState(() {});
+    _autoHideTimer?.cancel();
+    if (scheduleAutoHide) {
+      _autoHideTimer = Timer(const Duration(seconds: 3), () {
+        if (!mounted) return;
+        setState(() => _chrome.onAutoHide());
+        _applySystemUi();
+      });
+    }
+    _applySystemUi();
+  }
+
+  void _handlePointerDown(PointerDownEvent event) {
+    _onInteraction();
+    _tapDownPosition = event.position;
+    _tapDownTime = DateTime.now();
+    _tapDownHadSelection = _selection != null;
+  }
+
+  void _handlePointerUp(PointerUpEvent event) {
+    _onInteraction();
+    final downPosition = _tapDownPosition;
+    final downTime = _tapDownTime;
+    _tapDownPosition = null;
+    _tapDownTime = null;
+    if (downPosition == null || downTime == null || _tapDownHadSelection) {
+      return;
+    }
+    // A real tap, not a scroll (moves) or a selection long-press (holds).
+    final moved = (event.position - downPosition).distance;
+    final held = DateTime.now().difference(downTime);
+    if (moved < 12 && held < const Duration(milliseconds: 350)) {
+      _onTapGesture(ref.read(settingsProvider).focusMode.tapBehavior);
+    }
   }
 
   AppDatabase get _database => ref.read(databaseProvider);
@@ -351,6 +429,11 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen>
         unawaited(controller.pause());
         unawaited(controller.persistCurrentPage());
       }
+    } else if (state == AppLifecycleState.resumed) {
+      // Restore immersive/normal system bars after rotation, unlocking, or
+      // returning from another app; mode and controls state are kept.
+      _applySystemUi();
+      if (mounted) setState(() {});
     }
   }
 
@@ -358,6 +441,11 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _displayTimer?.cancel();
+    _autoHideTimer?.cancel();
+    SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.manual,
+      overlays: SystemUiOverlay.values,
+    );
     // Fire-and-forget on the cached controller only: no `ref` use here,
     // and the provider outlives this widget so the write completes.
     final controller = _sessionController;
@@ -380,22 +468,17 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen>
     }
 
     final theme = Theme.of(context);
+    // Watch so changing the tap-behavior preference applies immediately.
+    ref.watch(settingsProvider);
+    final chromeVisible = _chrome.controlsVisible;
 
     return Scaffold(
-      appBar: AppBar(
-        centerTitle: true,
-        title: Text(
-          widget.bookTitle,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: theme.textTheme.titleMedium,
-        ),
-      ),
       body: Stack(
         children: [
           Listener(
-            onPointerDown: (_) => _onInteraction(),
+            onPointerDown: _handlePointerDown,
             onPointerMove: (_) => _onInteraction(),
+            onPointerUp: _handlePointerUp,
             child: NotificationListener<ScrollNotification>(
               onNotification: (notification) {
                 _onInteraction();
@@ -539,7 +622,8 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen>
               left: 0,
               right: 0,
               bottom: 18,
-              child: IgnorePointer(
+              child: _FadingChrome(
+                visible: chromeVisible,
                 child: Center(
                   child: Container(
                     padding: const EdgeInsets.symmetric(
@@ -564,50 +648,54 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen>
               ),
             ),
           Positioned(
-            top: 16,
+            top: 76,
             right: 16,
-            child: Material(
-              color: Colors.black.withValues(alpha: 0.72),
-              borderRadius: BorderRadius.circular(14),
-              child: Row(
-                children: [
-                  IconButton(
-                    tooltip: 'Book assistant',
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => BookAssistantScreen(
-                          bookTitle: widget.bookTitle,
-                          notes: _notes.isEmpty
-                              ? null
-                              : _notes.map((note) => note.content).join('\n'),
+            child: _FadingChrome(
+              visible: chromeVisible && !_chrome.isFocus,
+              child: Material(
+                color: Colors.black.withValues(alpha: 0.72),
+                borderRadius: BorderRadius.circular(14),
+                child: Row(
+                  children: [
+                    IconButton(
+                      tooltip: 'Book assistant',
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => BookAssistantScreen(
+                            bookTitle: widget.bookTitle,
+                            notes: _notes.isEmpty
+                                ? null
+                                : _notes.map((note) => note.content).join('\n'),
+                          ),
                         ),
                       ),
+                      icon: const Icon(Icons.auto_awesome_rounded,
+                          color: Colors.white),
                     ),
-                    icon: const Icon(Icons.auto_awesome_rounded,
-                        color: Colors.white),
-                  ),
-                  IconButton(
-                    tooltip: context.l10n.bookmark,
-                    onPressed: _toggleBookmark,
-                    icon: Icon(
-                      _bookmarks.any((b) => b.pageNumber == _currentPage)
-                          ? Icons.bookmark
-                          : Icons.bookmark_border,
-                      color: Colors.white,
+                    IconButton(
+                      tooltip: context.l10n.bookmark,
+                      onPressed: _toggleBookmark,
+                      icon: Icon(
+                        _bookmarks.any((b) => b.pageNumber == _currentPage)
+                            ? Icons.bookmark
+                            : Icons.bookmark_border,
+                        color: Colors.white,
+                      ),
                     ),
-                  ),
-                  IconButton(
-                    tooltip: context.l10n.annotations,
-                    onPressed: _showAnnotations,
-                    icon: const Icon(Icons.menu_book, color: Colors.white),
-                  ),
-                  IconButton(
-                    tooltip: context.l10n.newNote,
-                    onPressed: () => _editNote(null, defaultPage: _currentPage),
-                    icon: const Icon(Icons.note_add_outlined,
-                        color: Colors.white),
-                  ),
-                ],
+                    IconButton(
+                      tooltip: context.l10n.annotations,
+                      onPressed: _showAnnotations,
+                      icon: const Icon(Icons.menu_book, color: Colors.white),
+                    ),
+                    IconButton(
+                      tooltip: context.l10n.newNote,
+                      onPressed: () =>
+                          _editNote(null, defaultPage: _currentPage),
+                      icon: const Icon(Icons.note_add_outlined,
+                          color: Colors.white),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -615,7 +703,7 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen>
             Positioned(
               left: 16,
               right: 16,
-              top: 16,
+              top: 76,
               child: Row(
                 children: [
                   Expanded(
@@ -649,17 +737,90 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen>
               left: 16,
               right: 16,
               bottom: _pageCount > 0 ? 64 : 18,
-              child: SessionControls(
-                controller: _sessionController!,
-                bookId: widget.bookId,
-                initialPage: _currentPage,
-                onChanged: () {
-                  if (mounted) setState(() {});
-                },
+              child: _FadingChrome(
+                visible: chromeVisible && !_chrome.isFocus,
+                child: SessionControls(
+                  controller: _sessionController!,
+                  bookId: widget.bookId,
+                  initialPage: _currentPage,
+                  onChanged: () {
+                    if (mounted) setState(() {});
+                  },
+                ),
               ),
             ),
+          // Top bar: full in Normal Mode; in Focus Mode this same bar is
+          // the minimal revealed control, with a clear Exit Focus action.
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: _FadingChrome(
+              visible: chromeVisible,
+              child: Material(
+                color: Colors.black.withValues(alpha: 0.72),
+                child: SafeArea(
+                  bottom: false,
+                  child: Row(
+                    children: [
+                      IconButton(
+                        tooltip: 'Back',
+                        onPressed: () => Navigator.of(context).maybePop(),
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      ),
+                      Expanded(
+                        child: Text(
+                          widget.bookTitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleMedium
+                              ?.copyWith(color: Colors.white),
+                        ),
+                      ),
+                      if (_chrome.isFocus)
+                        TextButton.icon(
+                          onPressed: () => _setFocus(false),
+                          icon: const Icon(Icons.fullscreen_exit_rounded,
+                              color: Colors.white),
+                          label: const Text(
+                            'Exit Focus',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        )
+                      else
+                        IconButton(
+                          tooltip: 'Focus Mode',
+                          onPressed: () => _setFocus(true),
+                          icon: const Icon(Icons.fullscreen_rounded,
+                              color: Colors.white),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
+}
+
+/// Subtle fade for reader chrome; hidden chrome ignores pointers.
+class _FadingChrome extends StatelessWidget {
+  final bool visible;
+  final Widget child;
+
+  const _FadingChrome({required this.visible, required this.child});
+
+  @override
+  Widget build(BuildContext context) => AnimatedOpacity(
+        opacity: visible ? 1 : 0,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+        child: IgnorePointer(
+          ignoring: !visible,
+          child: ExcludeSemantics(excluding: !visible, child: child),
+        ),
+      );
 }

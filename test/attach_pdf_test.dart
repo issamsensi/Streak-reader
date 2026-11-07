@@ -32,7 +32,7 @@ void main() {
     expect(books.single.title, 'Wishlist book');
   });
 
-  testWidgets('wishlist book menu and tap dialog offer adding a PDF',
+  testWidgets('wishlist book tap opens details and menu offers adding a PDF',
       (tester) async {
     SharedPreferences.setMockInitialValues({});
     final db = AppDatabase.forTesting(NativeDatabase.memory());
@@ -48,15 +48,19 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Wishlist book'), findsOneWidget);
 
-    // Tapping the book offers to add a PDF instead of only dismissing.
+    // Tapping a book without a PDF opens its Book Details page.
+    await tester.ensureVisible(find.text('Wishlist book'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Wishlist book'));
     await tester.pumpAndSettle();
-    expect(find.text('لا يوجد ملف'), findsOneWidget);
-    expect(find.widgetWithText(FilledButton, 'إضافة ملف PDF'), findsOneWidget);
-    await tester.tap(find.text('إلغاء'));
+    expect(find.text('Book details'), findsOneWidget);
+    expect(find.text('Edit Details'), findsWidgets);
+    tester.state<NavigatorState>(find.byType(Navigator).first).pop();
     await tester.pumpAndSettle();
 
     // The overflow menu offers it too.
+    await tester.ensureVisible(find.byIcon(Icons.more_vert).first);
+    await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.more_vert));
     await tester.pumpAndSettle();
     expect(find.text('إضافة ملف PDF'), findsOneWidget);

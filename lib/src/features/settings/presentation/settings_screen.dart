@@ -7,6 +7,7 @@ import '../../../core/l10n/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/di/providers.dart';
 import '../../../core/utils/date_only.dart';
+import '../../../domain/entities/focus_mode_preferences.dart';
 import '../../../domain/entities/monthly_goal.dart';
 import '../../../domain/entities/reading_reminder.dart';
 import '../../stats/providers/stats_provider.dart';
@@ -330,7 +331,6 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
           ),
-          const SizedBox(height: 16),
           Builder(
             builder: (context) {
               final sync = ref.watch(syncServiceProvider);
@@ -513,6 +513,51 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
           ),
+          const SizedBox(height: 16),
+          _SettingsSection(
+            icon: Icons.center_focus_strong_rounded,
+            title: 'Focus Mode',
+            child: Column(
+              children: [
+                SwitchListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                  title: const Text('Open books in Focus Mode'),
+                  subtitle: const Text(
+                    'Start reading without toolbars or timers visible',
+                  ),
+                  value: settings.focusMode.enabledByDefault,
+                  onChanged: (value) => controller.setFocusMode(
+                    settings.focusMode.copyWith(enabledByDefault: value),
+                  ),
+                ),
+                RadioGroup<FocusTapBehavior>(
+                  groupValue: settings.focusMode.tapBehavior,
+                  onChanged: (value) {
+                    if (value != null) {
+                      controller.setFocusMode(
+                        settings.focusMode.copyWith(tapBehavior: value),
+                      );
+                    }
+                  },
+                  child: const Column(
+                    children: [
+                      RadioListTile<FocusTapBehavior>(
+                        value: FocusTapBehavior.temporaryReveal,
+                        title: Text('Tap reveals controls temporarily'),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 8),
+                      ),
+                      RadioListTile<FocusTapBehavior>(
+                        value: FocusTapBehavior.toggleControls,
+                        title: Text('Tap toggles controls'),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 8),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
           const SizedBox(height: 28),
           Card(
             child: Padding(

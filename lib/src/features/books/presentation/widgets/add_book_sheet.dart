@@ -3,10 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/l10n/l10n_extension.dart';
+import '../../../../data/datasources/local/app_database.dart';
 import '../../providers/books_providers.dart';
 
 class AddBookSheet extends ConsumerStatefulWidget {
-  const AddBookSheet({super.key});
+  /// When non-null the sheet edits this book instead of creating one.
+  final Book? book;
+
+  const AddBookSheet({super.key, this.book});
 
   @override
   ConsumerState<AddBookSheet> createState() => _AddBookSheetState();
@@ -26,6 +30,27 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
   bool _showMetadata = false;
   String _status = 'want_to_read';
   DateTime? _completionDate;
+
+  bool get _isEditing => widget.book != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final book = widget.book;
+    if (book != null) {
+      _titleController.text = book.title;
+      _authorController.text = book.author ?? '';
+      _pagesController.text = book.totalPages?.toString() ?? '';
+      _descriptionController.text = book.description ?? '';
+      _coverPath = book.coverPath;
+      _filePath = book.filePath;
+      _fileName = book.fileName;
+      _fileSize = book.fileSize;
+      _status = book.readingStatus;
+      _completionDate = book.completionDate;
+      _showMetadata = true;
+    }
+  }
 
   @override
   void dispose() {
@@ -66,7 +91,6 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
         _titleController.text = picked.name
             .replaceFirst(RegExp(r'\.pdf$', caseSensitive: false), '');
       }
-
     });
   }
 
@@ -90,23 +114,42 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
     });
 
     try {
-      await ref.read(booksRepositoryProvider).addBook(
-            title: title,
-            author: _authorController.text.trim().isEmpty
-                ? null
-                : _authorController.text.trim(),
-            totalPages: int.tryParse(_pagesController.text.trim()),
-            filePath: _filePath,
-            fileName: _fileName,
-            fileSize: _fileSize,
-            coverPath: _coverPath,
-            description: _descriptionController.text.trim().isEmpty
-                ? null
-                : _descriptionController.text.trim(),
-            status: _status,
-            completionDate: _completionDate,
-            historical: _status == 'completed' && _filePath == null,
-          );
+      if (_isEditing) {
+        // Editing only rewrites the books row; sessions, notes, bookmarks
+        // and other records keyed by book id stay untouched.
+        await ref.read(booksRepositoryProvider).updateBookDetails(
+              widget.book!.id,
+              title: title,
+              author: _authorController.text.trim().isEmpty
+                  ? null
+                  : _authorController.text.trim(),
+              totalPages: int.tryParse(_pagesController.text.trim()),
+              coverPath: _coverPath,
+              description: _descriptionController.text.trim().isEmpty
+                  ? null
+                  : _descriptionController.text.trim(),
+              status: _status,
+              completionDate: _status == 'completed' ? _completionDate : null,
+            );
+      } else {
+        await ref.read(booksRepositoryProvider).addBook(
+              title: title,
+              author: _authorController.text.trim().isEmpty
+                  ? null
+                  : _authorController.text.trim(),
+              totalPages: int.tryParse(_pagesController.text.trim()),
+              filePath: _filePath,
+              fileName: _fileName,
+              fileSize: _fileSize,
+              coverPath: _coverPath,
+              description: _descriptionController.text.trim().isEmpty
+                  ? null
+                  : _descriptionController.text.trim(),
+              status: _status,
+              completionDate: _completionDate,
+              historical: _status == 'completed' && _filePath == null,
+            );
+      }
     } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);
@@ -157,10 +200,15 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(l10n.addBook, style: theme.textTheme.titleLarge),
+                    Text(
+                      _isEditing ? 'Edit Details' : l10n.addBook,
+                      style: theme.textTheme.titleLarge,
+                    ),
                     const SizedBox(height: 2),
                     Text(
-                      l10n.addBookSubtitle,
+                      _isEditing
+                          ? 'Update book information'
+                          : l10n.addBookSubtitle,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
@@ -240,6 +288,10 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
                   child: Text('Completed'),
                 ),
                 DropdownMenuItem(value: 'paused', child: Text('Paused')),
+                DropdownMenuItem(
+                  value: 'abandoned',
+                  child: Text('Abandoned'),
+                ),
               ],
               onChanged: (value) => setState(() => _status = value!),
             ),
@@ -267,17 +319,21 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
               ),
             ],
           ],
-          const SizedBox(height: 12),
-          _PdfPickerTile(fileName: _fileName, onTap: _pickPdf),
+          if (!_isEditing) ...[
+            const SizedBox(height: 12),
+            _PdfPickerTile(fileName: _fileName, onTap: _pickPdf),
+          ],
           const SizedBox(height: 8),
           OutlinedButton.icon(
             onPressed: _pickCover,
             icon: const Icon(Icons.image_outlined),
             label: Text(
-              _coverPath == null ? 'Add cover image (optional)' : 'Cover selected',
+              _coverPath == null
+                  ? 'Add cover image (optional)'
+                  : 'Cover selected',
             ),
           ),
-          if (_filePath == null)
+          if (_filePath == null && !_isEditing)
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Text(

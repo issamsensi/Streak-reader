@@ -8,6 +8,7 @@ import '../../../core/l10n/l10n_extension.dart';
 import '../../../core/di/providers.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/file_exists.dart';
+import '../../../core/widgets/book_cover_image.dart';
 import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/streak_banner.dart';
 import '../../../data/datasources/local/app_database.dart';
@@ -25,7 +26,6 @@ import '../../journal/presentation/reading_journal_screen.dart';
 import '../../export/presentation/reading_export_screen.dart';
 import '../providers/books_providers.dart';
 import 'widgets/add_book_sheet.dart';
-import 'widgets/edit_title_dialog.dart';
 
 String _statusLabel(AppLocalizations l10n, ReadingStatus status) {
   switch (status) {
@@ -56,6 +56,7 @@ class _BooksListScreenState extends ConsumerState<BooksListScreen> {
   ReadingStatus? _statusFilter;
   String _sort = 'recent';
   List<Collection> _collections = const [];
+  final Set<String> _collapsedSections = {};
 
   @override
   void initState() {
@@ -254,10 +255,22 @@ class _BooksListScreenState extends ConsumerState<BooksListScreen> {
   }
 
   void _showEditDialog(BuildContext context, Book book) {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (_) =>
-          EditTitleDialog(bookId: book.id, currentTitle: book.title),
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (_) => AddBookSheet(book: book),
+    ).then((_) => ref.invalidate(booksListProvider));
+  }
+
+  void _openDetails(BuildContext context, Book book,
+      {bool focusHistory = false}) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) =>
+            BookDetailsScreen(bookId: book.id, focusHistory: focusHistory),
+      ),
     );
   }
 
@@ -291,26 +304,8 @@ class _BooksListScreenState extends ConsumerState<BooksListScreen> {
     }
 
     if (!hasFile) {
-      showDialog(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: Text(l10n.noFileTitle),
-          content: Text(l10n.noFileBody),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: Text(l10n.cancel),
-            ),
-            FilledButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-                _attachPdf(context, ref, book);
-              },
-              child: Text(l10n.addPdf),
-            ),
-          ],
-        ),
-      );
+      // Books without a PDF (physical / manually added) open their details.
+      _openDetails(context, book);
       return;
     }
 
@@ -345,7 +340,8 @@ class _BooksListScreenState extends ConsumerState<BooksListScreen> {
   Future<void> _editBookCollections(Book book) async {
     if (_collections.isEmpty) {
       await _createCollection();
-      return;
+      if (_collections.isEmpty || !mounted) return;
+      // Fall through so the new collection can be assigned to this book.
     }
     final selected = (await ref.read(databaseProvider).getBookCollectionIds(
               book.id,
@@ -544,131 +540,41 @@ class _BooksListScreenState extends ConsumerState<BooksListScreen> {
             final matchesStatus = _statusFilter == null ||
                 book.readingStatus == _statusFilter!.value;
             return matchesQuery && matchesStatus;
-          }).toList()
-            ..sort((a, b) {
-              if (_sort == 'title') return a.title.compareTo(b.title);
-              if (_sort == 'progress') return b.lastPage.compareTo(a.lastPage);
-              return b.createdAt.compareTo(a.createdAt);
-            });
+          }).toList();
+          // Recently active = last session date (from stats), then newest.
+          final lastActive = <int, String>{
+            for (final p in stats?.readingStatistics.bookProgress ?? const [])
+              if (p.lastReadingDate != null) p.book.id: p.lastReadingDate!,
+          };
+          filtered.sort((a, b) {
+            if (_sort == 'title') {
+              return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+            }
+            if (_sort == 'dateAdded') return b.createdAt.compareTo(a.createdAt);
+            if (_sort == 'progress') return b.lastPage.compareTo(a.lastPage);
+            final byActivity =
+                (lastActive[b.id] ?? '').compareTo(lastActive[a.id] ?? '');
+            return byActivity != 0
+                ? byActivity
+                : b.createdAt.compareTo(a.createdAt);
+          });
           if (books.isEmpty) {
             return _EmptyLibrary(
               onAdd: () => _showAddSheet(context),
             );
           }
-          return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(20, 4, 20, 112),
-            itemCount: filtered.length + 1,
-            separatorBuilder: (context, index) =>
-                SizedBox(height: index == 0 ? 18 : 12),
-            itemBuilder: (context, index) {
-              if (index == 0) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (stats != null) ...[
-                      StreakBanner(stats: stats, compact: true),
-                      const SizedBox(height: 12),
-                      const DailyGoalCard(),
-                      const SizedBox(height: 26),
-                    ],
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.search),
-                      title: Text(
-                        _searchController.text.isEmpty
-                            ? l10n.searchBooks
-                            : _searchController.text,
-                      ),
-                      trailing: IconButton(
-                        onPressed: _showSearchDialog,
-                        icon: const Icon(Icons.tune),
-                      ),
-                      onTap: _showSearchDialog,
-                    ),
-                    const SizedBox(height: 10),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: [
-                          ChoiceChip(
-                            label: Text(l10n.allBooks),
-                            selected: _statusFilter == null,
-                            onSelected: (_) => setState(
-                              () => _statusFilter = null,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          for (final status in ReadingStatus.values) ...[
-                            ChoiceChip(
-                              label: Text(
-                                '• ${_statusLabel(l10n, status)}',
-                              ),
-                              selected: _statusFilter == status,
-                              onSelected: (_) => setState(
-                                () => _statusFilter = status,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                          ],
-                        ],
-                      ),
-                    ),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            l10n.yourBooks,
-                            style: theme.textTheme.titleMedium,
-                          ),
-                        ),
-                        PopupMenuButton<String>(
-                          icon: const Icon(Icons.sort_rounded),
-                          onSelected: (value) => setState(() => _sort = value),
-                          itemBuilder: (context) => [
-                            const PopupMenuItem(
-                              value: 'details',
-                              child: Text('Book details'),
-                            ),
-                            PopupMenuItem(
-                              value: 'recent',
-                              child: Text(l10n.sortRecent),
-                            ),
-                            PopupMenuItem(
-                              value: 'title',
-                              child: Text(l10n.sortTitle),
-                            ),
-                            PopupMenuItem(
-                              value: 'progress',
-                              child: Text(l10n.sortProgress),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 9,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primaryContainer,
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Text(
-                            '${filtered.length}',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.colorScheme.onPrimaryContainer,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                );
-              }
-
-              final book = filtered[index - 1];
-              return _BookCard(
+          // Group by status in the required order; abandoned (if any) last
+          // so no book ever disappears from the library.
+          const sectionOrder = [
+            ReadingStatus.currentlyReading,
+            ReadingStatus.wantToRead,
+            ReadingStatus.paused,
+            ReadingStatus.completed,
+            ReadingStatus.abandoned,
+          ];
+          final visibleStatuses =
+              _statusFilter == null ? sectionOrder : [_statusFilter!];
+          Widget cardFor(Book book) => _BookCard(
                 book: book,
                 onTap: () => _openBook(context, ref, book),
                 onPhysicalReading: () => Navigator.of(context)
@@ -681,18 +587,169 @@ class _BooksListScreenState extends ConsumerState<BooksListScreen> {
                       ),
                     )
                     .then((_) => ref.invalidate(booksListProvider)),
-                onDetails: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => BookDetailsScreen(bookId: book.id),
-                  ),
-                ),
+                onDetails: () => _openDetails(context, book),
+                onHistory: () =>
+                    _openDetails(context, book, focusHistory: true),
                 onEdit: () => _showEditDialog(context, book),
                 onAttachPdf: () => _attachPdf(context, ref, book),
                 onSetStatus: (status) => _setStatus(context, ref, book, status),
                 onManageCollections: () => _editBookCollections(book),
                 onDelete: () => _deleteBook(context, ref, book),
               );
-            },
+          // Eager Column (not a lazy ListView) so every section and card is
+          // present in the tree; personal libraries are small.
+          return SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 112),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Builder(builder: (context) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (stats != null) ...[
+                        StreakBanner(stats: stats, compact: true),
+                        const SizedBox(height: 12),
+                        const DailyGoalCard(),
+                        const SizedBox(height: 26),
+                      ],
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.search),
+                        title: Text(
+                          _searchController.text.isEmpty
+                              ? l10n.searchBooks
+                              : _searchController.text,
+                        ),
+                        trailing: IconButton(
+                          onPressed: _showSearchDialog,
+                          icon: const Icon(Icons.tune),
+                        ),
+                        onTap: _showSearchDialog,
+                      ),
+                      const SizedBox(height: 10),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            ChoiceChip(
+                              label: Text(l10n.allBooks),
+                              selected: _statusFilter == null,
+                              onSelected: (_) => setState(
+                                () => _statusFilter = null,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            for (final status in ReadingStatus.values) ...[
+                              ChoiceChip(
+                                label: Text(
+                                  '• ${_statusLabel(l10n, status)}',
+                                ),
+                                selected: _statusFilter == status,
+                                onSelected: (_) => setState(
+                                  () => _statusFilter = status,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                            ],
+                          ],
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              l10n.yourBooks,
+                              style: theme.textTheme.titleMedium,
+                            ),
+                          ),
+                          PopupMenuButton<String>(
+                            icon: const Icon(Icons.sort_rounded),
+                            onSelected: (value) =>
+                                setState(() => _sort = value),
+                            itemBuilder: (context) => [
+                              const PopupMenuItem(
+                                value: 'recent',
+                                child: Text('Recently active'),
+                              ),
+                              PopupMenuItem(
+                                value: 'title',
+                                child: Text(l10n.sortTitle),
+                              ),
+                              const PopupMenuItem(
+                                value: 'dateAdded',
+                                child: Text('Date added'),
+                              ),
+                              PopupMenuItem(
+                                value: 'progress',
+                                child: Text(l10n.sortProgress),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 9,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Text(
+                              '${filtered.length}',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.onPrimaryContainer,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  );
+                }),
+                const SizedBox(height: 18),
+                if (filtered.isEmpty)
+                  _SectionEmptyState(
+                    message: 'No books match your search.',
+                    actionLabel: l10n.addBook,
+                    onAction: () => _showAddSheet(context),
+                  )
+                else
+                  for (final status in visibleStatuses) ...[
+                    _LibrarySection(
+                      title: _statusLabel(l10n, status),
+                      count: filtered
+                          .where((b) => b.readingStatus == status.value)
+                          .length,
+                      expanded: !_collapsedSections.contains(status.value),
+                      onToggle: () => setState(() {
+                        _collapsedSections.contains(status.value)
+                            ? _collapsedSections.remove(status.value)
+                            : _collapsedSections.add(status.value);
+                      }),
+                      emptyMessage: switch (status) {
+                        ReadingStatus.currentlyReading =>
+                          'No books currently being read.',
+                        ReadingStatus.wantToRead =>
+                          'Your reading list is empty.',
+                        ReadingStatus.completed => 'No completed books yet.',
+                        ReadingStatus.paused => 'No paused books.',
+                        ReadingStatus.abandoned => 'No abandoned books.',
+                      },
+                      children: [
+                        for (final book in filtered
+                            .where((b) => b.readingStatus == status.value)) ...[
+                          cardFor(book),
+                          const SizedBox(height: 12),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+              ],
+            ),
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -710,11 +767,116 @@ class _BooksListScreenState extends ConsumerState<BooksListScreen> {
   }
 }
 
+class _SectionEmptyState extends StatelessWidget {
+  final String message;
+  final String actionLabel;
+  final VoidCallback onAction;
+
+  const _SectionEmptyState({
+    required this.message,
+    required this.actionLabel,
+    required this.onAction,
+  });
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Column(
+          children: [
+            Text(message,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    )),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: onAction,
+              icon: const Icon(Icons.add_rounded, size: 18),
+              label: Text(actionLabel),
+            ),
+          ],
+        ),
+      );
+}
+
+class _LibrarySection extends StatelessWidget {
+  final String title;
+  final int count;
+  final bool expanded;
+  final VoidCallback onToggle;
+  final String emptyMessage;
+  final List<Widget> children;
+
+  const _LibrarySection({
+    required this.title,
+    required this.count,
+    required this.expanded,
+    required this.onToggle,
+    required this.emptyMessage,
+    required this.children,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          onTap: onToggle,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(title, style: theme.textTheme.titleMedium),
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text('$count',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onPrimaryContainer,
+                        fontWeight: FontWeight.w600,
+                      )),
+                ),
+                Icon(expanded
+                    ? Icons.expand_less_rounded
+                    : Icons.expand_more_rounded),
+              ],
+            ),
+          ),
+        ),
+        if (expanded)
+          if (count == 0)
+            // Text-only empty state; the Add Book FAB is always visible, so
+            // repeating an Add button in every section would just clutter.
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+              child: Text(
+                emptyMessage,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            )
+          else
+            ...children,
+      ],
+    );
+  }
+}
+
 class _BookCard extends StatelessWidget {
   final Book book;
   final VoidCallback onTap;
   final VoidCallback onPhysicalReading;
   final VoidCallback onDetails;
+  final VoidCallback onHistory;
   final VoidCallback onEdit;
   final VoidCallback onAttachPdf;
   final ValueChanged<String> onSetStatus;
@@ -726,6 +888,7 @@ class _BookCard extends StatelessWidget {
     required this.onTap,
     required this.onPhysicalReading,
     required this.onDetails,
+    required this.onHistory,
     required this.onEdit,
     required this.onAttachPdf,
     required this.onSetStatus,
@@ -768,7 +931,10 @@ class _BookCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _BookCover(title: book.title, hasFile: hasFile),
+              _BookCover(
+                  title: book.title,
+                  hasFile: hasFile,
+                  coverPath: book.coverPath),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
@@ -851,6 +1017,8 @@ class _BookCard extends StatelessWidget {
                     onEdit();
                   } else if (value == 'details') {
                     onDetails();
+                  } else if (value == 'history') {
+                    onHistory();
                   } else if (value == 'physical_reading') {
                     onPhysicalReading();
                   } else if (value == 'attach_pdf') {
@@ -870,6 +1038,26 @@ class _BookCard extends StatelessWidget {
                   }
                 },
                 itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'details',
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline_rounded, size: 18),
+                        SizedBox(width: 10),
+                        Flexible(child: Text('Book Details')),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'history',
+                    child: Row(
+                      children: [
+                        Icon(Icons.history_rounded, size: 18),
+                        SizedBox(width: 10),
+                        Flexible(child: Text('Reading History')),
+                      ],
+                    ),
+                  ),
                   PopupMenuItem(
                     value: 'physical_reading',
                     child: Row(
@@ -894,9 +1082,9 @@ class _BookCard extends StatelessWidget {
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
                         const SizedBox(width: 10),
-                        Flexible(
+                        const Flexible(
                           child: Text(
-                            l10n.editTitle,
+                            'Edit Details',
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -915,7 +1103,7 @@ class _BookCard extends StatelessWidget {
                         const SizedBox(width: 10),
                         Flexible(
                           child: Text(
-                            hasFile ? l10n.changePdf : l10n.addPdf,
+                            hasFile ? 'Replace PDF' : l10n.addPdf,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -977,8 +1165,10 @@ class _BookCard extends StatelessWidget {
 class _BookCover extends StatelessWidget {
   final String title;
   final bool hasFile;
+  final String? coverPath;
 
-  const _BookCover({required this.title, required this.hasFile});
+  const _BookCover(
+      {required this.title, required this.hasFile, this.coverPath});
 
   @override
   Widget build(BuildContext context) {
@@ -987,6 +1177,21 @@ class _BookCover extends StatelessWidget {
     final initial =
         trimmed.isEmpty ? '?' : trimmed.characters.first.toUpperCase();
 
+    if (coverPath != null && coverPath!.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: bookCoverImage(
+          path: coverPath!,
+          width: 56,
+          height: 76,
+          fallback: _gradient(context, colors, initial),
+        ),
+      );
+    }
+    return _gradient(context, colors, initial);
+  }
+
+  Widget _gradient(BuildContext context, List<Color> colors, String initial) {
     return Container(
       width: 56,
       height: 76,

@@ -3,12 +3,13 @@ import 'package:streak_reader/src/data/datasources/local/app_database.dart';
 import 'package:streak_reader/src/domain/entities/reading_statistics.dart';
 
 void main() {
-  Book book(int id, {bool completed = false}) => Book(
+  Book book(int id, {bool completed = false, String? status}) => Book(
         id: id,
         title: 'Book $id',
         lastPage: 0,
         isCompleted: completed,
-        readingStatus: completed ? 'completed' : 'want_to_read',
+        readingStatus:
+            status ?? (completed ? 'completed' : 'want_to_read'),
         addedAsPreviouslyCompleted: false,
         createdAt: DateTime(2026),
       );
@@ -31,7 +32,11 @@ void main() {
   test('calculates aggregate metrics from valid reading sessions', () {
     final statistics = ReadingStatistics.fromRecords(
       now: DateTime(2026, 11, 7),
-      books: [book(1), book(2, completed: true), book(3)],
+      books: [
+        book(1, status: 'currently_reading'),
+        book(2, completed: true),
+        book(3)
+      ],
       sessions: [
         session('2026-11-03', bookId: 1, seconds: 600, pages: 4),
         session('2026-11-03', bookId: 2, seconds: 300, pages: 2),
@@ -51,6 +56,28 @@ void main() {
     expect(statistics.yearlyActivity, hasLength(12));
     expect(statistics.dailyHistory, hasLength(14));
     expect(statistics.bookProgress.first.pagesRead, 10);
+  });
+
+  test('currently reading follows reading status, not sessions or completion',
+      () {
+    final statistics = ReadingStatistics.fromRecords(
+      now: DateTime(2026, 11, 7),
+      books: [
+        // Currently reading with no sessions yet still counts.
+        book(1, status: 'currently_reading'),
+        // Books with sessions but another status do not count.
+        book(2),
+        book(3, status: 'paused'),
+        book(4, completed: true),
+      ],
+      sessions: [
+        session('2026-11-07', bookId: 2, seconds: 600, pages: 4),
+        session('2026-11-07', bookId: 3, seconds: 600, pages: 4),
+        session('2026-11-07', bookId: 4, seconds: 600, pages: 4),
+      ],
+    );
+
+    expect(statistics.currentlyReadingBooks, 1);
   });
 
   test('consistency is based on the fourteen-day daily history window', () {

@@ -266,7 +266,9 @@ class ReadingSessionController extends StateNotifier<ReadingSessionState> {
 
   Future<void> _persistDraft() async {
     await _sessionReady;
-    if (!state.hasSession || state.startTime == null) return;
+    // The reader may be disposed while a save is in flight (its dispose
+    // fires finish() unawaited); touching state afterwards would throw.
+    if (!mounted || !state.hasSession || state.startTime == null) return;
     final elapsed = elapsedSeconds;
     await db.updateSession(
       state.sessionId!,
@@ -280,6 +282,7 @@ class ReadingSessionController extends StateNotifier<ReadingSessionState> {
         ),
       ),
     );
+    if (!mounted) return;
     state = state.copyWith(elapsedSeconds: elapsed);
   }
 
@@ -292,26 +295,30 @@ class ReadingSessionController extends StateNotifier<ReadingSessionState> {
   Future<void> finish({int? pagesRead, String? note}) async {
     if (_isFinishing) return;
     await _sessionReady;
-    if (!state.hasSession) return;
+    if (!mounted || !state.hasSession) return;
     _isFinishing = true;
     _autosaveTimer?.cancel();
     final sessionId = state.sessionId!;
     final bookId = state.bookId;
     final currentPage = state.currentPage;
+    final readingMode = state.readingMode;
+    final startTime = state.startTime;
+    final elapsedAtStart = elapsedSeconds;
     try {
       await _persistDraft();
       await _pendingPersist;
-      if (state.readingMode == 'digital' && bookId > 0 && currentPage > 0) {
+      if (readingMode == 'digital' && bookId > 0 && currentPage > 0) {
         await db.updateBookLastPage(bookId, currentPage);
       }
       final now = DateTime.now();
-      final elapsed = elapsedSeconds;
+      final elapsed = mounted ? elapsedSeconds : elapsedAtStart;
       if (elapsed <= 0) {
         await db.deleteSession(sessionId);
+        if (!mounted) return;
         state = ReadingSessionState(
           isActive: false,
           isPaused: false,
-          startTime: state.startTime,
+          startTime: startTime,
           pagesAtStart: currentPage,
           currentPage: currentPage,
           bookId: bookId,
@@ -326,16 +333,17 @@ class ReadingSessionController extends StateNotifier<ReadingSessionState> {
           durationSeconds: drift.Value(elapsed),
           pagesRead: drift.Value(pagesRead ?? getPagesRead()),
           note: drift.Value(note?.trim().isEmpty == true ? null : note?.trim()),
-          readingMode: drift.Value(state.readingMode),
+          readingMode: drift.Value(readingMode),
           endingPage: drift.Value(currentPage),
           endTime: drift.Value(now),
           activeSegmentStartedAt: const drift.Value(null),
         ),
       );
+      if (!mounted) return;
       state = ReadingSessionState(
         isActive: false,
         isPaused: false,
-        startTime: state.startTime,
+        startTime: startTime,
         pagesAtStart: currentPage,
         currentPage: currentPage,
         bookId: bookId,

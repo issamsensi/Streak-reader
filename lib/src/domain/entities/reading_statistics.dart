@@ -1,5 +1,6 @@
 import '../../core/utils/date_only.dart';
 import '../../data/datasources/local/app_database.dart';
+import 'reading_status.dart';
 
 enum StatisticsPeriod { week, month, year }
 
@@ -185,8 +186,8 @@ class ReadingStatistics {
 
     return ReadingStatistics(
       currentlyReadingBooks: books
-          .where(
-              (book) => !book.isCompleted && pagesByBook.containsKey(book.id))
+          .where((book) =>
+              book.readingStatus == ReadingStatus.currentlyReading.value)
           .length,
       totalSessions: validSessions.length,
       averageDailySeconds: activeDays == 0 ? 0 : totalSeconds ~/ activeDays,

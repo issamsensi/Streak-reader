@@ -57,6 +57,44 @@ class BooksRepositoryImpl implements BooksRepository {
   }
 
   @override
+  Future<void> updateBookDetails(
+    int id, {
+    required String title,
+    String? author,
+    int? totalPages,
+    String? coverPath,
+    String? description,
+    required String status,
+    DateTime? completionDate,
+  }) async {
+    final completed = status == 'completed';
+    await (db.update(db.books)..where((tbl) => tbl.id.equals(id))).write(
+      BooksCompanion(
+        title: Value(title),
+        author: Value(author),
+        totalPages: Value(totalPages),
+        coverPath: Value(coverPath),
+        description: Value(description),
+        readingStatus: Value(status),
+        isCompleted: Value(completed),
+        // An explicit edit sets or clears the date; it must not go stale.
+        completionDate: Value(completed ? completionDate : null),
+      ),
+    );
+    if (completed) {
+      final existing = await db.getBookCompletions(id);
+      final when = completionDate ?? DateTime.now();
+      if (existing.isEmpty || existing.first.completedAt != when) {
+        await db.addBookCompletion(
+          bookId: id,
+          completedAt: when,
+          historical: false,
+        );
+      }
+    }
+  }
+
+  @override
   Future<void> updateBookFile(int id,
       {required String filePath, String? fileName, int? fileSize}) async {
     await (db.update(db.books)..where((tbl) => tbl.id.equals(id))).write(

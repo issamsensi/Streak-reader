@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../domain/entities/daily_goal_history.dart';
+import '../../../domain/entities/focus_mode_preferences.dart';
 import '../../../domain/entities/monthly_goal.dart';
 import '../../../domain/entities/reading_reminder.dart';
 import '../../../domain/entities/streak_protection.dart';
@@ -20,6 +21,7 @@ class AppSettings {
   final Map<String, Set<int>> completedBookHistory;
   final ReadingReminderSettings readingReminder;
   final StreakProtection streakProtection;
+  final FocusModePreferences focusMode;
 
   const AppSettings({
     this.languageCode = 'ar',
@@ -30,6 +32,7 @@ class AppSettings {
     this.completedBookHistory = const {},
     this.readingReminder = const ReadingReminderSettings(),
     this.streakProtection = const StreakProtection(),
+    this.focusMode = const FocusModePreferences(),
   });
 
   Locale get locale => Locale(languageCode);
@@ -43,6 +46,7 @@ class AppSettings {
     Map<String, Set<int>>? completedBookHistory,
     ReadingReminderSettings? readingReminder,
     StreakProtection? streakProtection,
+    FocusModePreferences? focusMode,
   }) {
     return AppSettings(
       languageCode: languageCode ?? this.languageCode,
@@ -53,6 +57,7 @@ class AppSettings {
       completedBookHistory: completedBookHistory ?? this.completedBookHistory,
       readingReminder: readingReminder ?? this.readingReminder,
       streakProtection: streakProtection ?? this.streakProtection,
+      focusMode: focusMode ?? this.focusMode,
     );
   }
 }
@@ -65,6 +70,7 @@ class SettingsController extends StateNotifier<AppSettings> {
   static const _completedBookHistoryKey = 'settings_completed_book_history';
   static const _readingReminderKey = 'settings_reading_reminder';
   static const _streakProtectionKey = 'settings_streak_protection';
+  static const _focusModeKey = 'settings_focus_mode';
 
   final DateTime Function() _now;
   late final Future<void> initialized;
@@ -95,6 +101,7 @@ class SettingsController extends StateNotifier<AppSettings> {
     final protection = _readProtection(
       prefs.getString(_streakProtectionKey),
     );
+    final focusMode = _readFocusMode(prefs.getString(_focusModeKey));
     state = AppSettings(
       languageCode: switch (language) {
         'ar' || 'en' || 'fr' => language!,
@@ -111,7 +118,25 @@ class SettingsController extends StateNotifier<AppSettings> {
       completedBookHistory: completedHistory,
       readingReminder: reminder,
       streakProtection: protection,
+      focusMode: focusMode,
     );
+  }
+
+  FocusModePreferences _readFocusMode(String? raw) {
+    if (raw == null || raw.isEmpty) return const FocusModePreferences();
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is Map) return FocusModePreferences.fromMap(decoded);
+    } on FormatException {
+      // Corrupted preferences should not prevent the app from starting.
+    }
+    return const FocusModePreferences();
+  }
+
+  Future<void> setFocusMode(FocusModePreferences preferences) async {
+    state = state.copyWith(focusMode: preferences);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_focusModeKey, jsonEncode(preferences.toMap()));
   }
 
   StreakProtection _readProtection(String? raw) {

@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:streak_reader/src/data/datasources/local/app_database.dart';
@@ -111,6 +112,60 @@ void main() {
     expect(book.fileSize, 42);
     expect(book.lastPage, 12);
     expect(book.isCompleted, isTrue);
+  });
+
+  test('updateBookDetails edits metadata and preserves associated records',
+      () async {
+    final id = await repo.addBook(
+      title: 'Old',
+      filePath: '/tmp/book.pdf',
+      fileName: 'book.pdf',
+    );
+    await repo.updateLastPage(id, 7);
+    await db.insertSession(ReadingSessionsCompanion.insert(
+      bookId: id,
+      date: '2026-11-07',
+      durationSeconds: 900,
+    ));
+    await db.addNote(NotesCompanion.insert(bookId: id, content: 'Keep me'));
+    await db.addBookmark(BookmarksCompanion.insert(bookId: id, pageNumber: 3));
+    await db.addJournalEntry(JournalEntriesCompanion.insert(
+      bookId: Value(id),
+      title: 'Entry',
+      reflection: 'Thoughts',
+    ));
+
+    await repo.updateBookDetails(
+      id,
+      title: 'New',
+      author: 'Author',
+      totalPages: 200,
+      description: 'Desc',
+      status: 'completed',
+      completionDate: DateTime(2026, 11, 8),
+    );
+
+    final book = (await repo.getAllBooks()).single;
+    expect(book.title, 'New');
+    expect(book.author, 'Author');
+    expect(book.totalPages, 200);
+    expect(book.description, 'Desc');
+    expect(book.readingStatus, 'completed');
+    expect(book.isCompleted, isTrue);
+    expect(book.completionDate, DateTime(2026, 11, 8));
+    expect(book.filePath, '/tmp/book.pdf');
+    expect(book.lastPage, 7);
+    expect(await db.getSessionsForBook(id), hasLength(1));
+    expect((await db.getNotes(id)).single.content, 'Keep me');
+    expect(await db.getBookmarks(id), hasLength(1));
+    expect(await db.getJournalEntries(bookId: id), hasLength(1));
+    expect(await db.getBookCompletions(id), hasLength(1));
+
+    // Un-completing via edit clears the stale completion date.
+    await repo.updateBookDetails(id, title: 'New', status: 'currently_reading');
+    final reread = (await repo.getAllBooks()).single;
+    expect(reread.isCompleted, isFalse);
+    expect(reread.completionDate, isNull);
   });
 
   test('updateBookFile can replace an existing PDF', () async {

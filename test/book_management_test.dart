@@ -37,15 +37,23 @@ void main() {
       },
     );
 
+    await tester.ensureVisible(find.byIcon(Icons.more_vert).first);
+    await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.more_vert));
     await tester.pumpAndSettle();
     await tester.tap(find.text('وضع علامة كمكتمل'));
     await tester.pumpAndSettle();
 
     expect((await db.getAllBooks()).single.isCompleted, isTrue);
-    expect(find.text('مكتمل'), findsOneWidget);
+    // Section heading and the card both carry the completed label.
+    expect(find.text('مكتمل'), findsWidgets);
 
+    await tester.ensureVisible(find.byIcon(Icons.more_vert).first);
+    await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('حذف الكتاب'), 80,
+        scrollable: find.byType(Scrollable).last);
     await tester.pumpAndSettle();
     await tester.tap(find.text('حذف الكتاب'));
     await tester.pumpAndSettle();
@@ -72,7 +80,12 @@ void main() {
       },
     );
 
+    await tester.ensureVisible(find.text('كتاب أول'));
+    await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.more_vert).first);
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('حذف الكتاب'), 80,
+        scrollable: find.byType(Scrollable).last);
     await tester.pumpAndSettle();
     await tester.tap(find.text('حذف الكتاب'));
     await tester.pumpAndSettle();
