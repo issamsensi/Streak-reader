@@ -9,6 +9,7 @@ import '../../../core/widgets/streak_banner.dart';
 import '../../../domain/entities/reading_statistics.dart';
 import '../../../domain/usecases/calculate_streak.dart';
 import '../../monthly_goal/presentation/monthly_progress_dashboard.dart';
+import '../../achievements/presentation/achievements_screen.dart';
 import '../providers/stats_provider.dart';
 
 class StatsScreen extends ConsumerStatefulWidget {
@@ -27,7 +28,20 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
     final theme = Theme.of(context);
     final statsAsync = ref.watch(statsProvider);
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.statistics)),
+      appBar: AppBar(
+        title: Text(l10n.statistics),
+        actions: [
+          IconButton(
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => const AchievementsScreen(),
+              ),
+            ),
+            icon: const Icon(Icons.emoji_events_outlined),
+            tooltip: l10n.achievements,
+          ),
+        ],
+      ),
       body: statsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => ErrorState(

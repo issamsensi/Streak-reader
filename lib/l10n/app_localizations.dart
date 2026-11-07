@@ -1125,6 +1125,168 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This reflection will be permanently deleted.'**
   String get deleteJournalEntryBody;
+
+  /// No description provided for @achievements.
+  ///
+  /// In en, this message translates to:
+  /// **'Achievements'**
+  String get achievements;
+
+  /// No description provided for @achievementStreaks.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading streak'**
+  String get achievementStreaks;
+
+  /// No description provided for @achievementTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading time'**
+  String get achievementTime;
+
+  /// No description provided for @achievementProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading progress'**
+  String get achievementProgress;
+
+  /// No description provided for @achievementsProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{unlocked} of {total} achievements unlocked'**
+  String achievementsProgress(Object total, Object unlocked);
+
+  /// No description provided for @achievementUnlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Achievement unlocked: {title}'**
+  String achievementUnlocked(Object title);
+
+  /// No description provided for @achievementUnlockedDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlocked {date}'**
+  String achievementUnlockedDate(Object date);
+
+  /// No description provided for @achievementStreakDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Reach a {days}-day reading streak.'**
+  String achievementStreakDescription(Object days);
+
+  /// No description provided for @achievementMinutesDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Read for {hours} hours in total.'**
+  String achievementMinutesDescription(Object hours);
+
+  /// No description provided for @achievementPagesDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Read {pages} pages in total.'**
+  String achievementPagesDescription(Object pages);
+
+  /// No description provided for @achievementBooksDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete {books} books.'**
+  String achievementBooksDescription(Object books);
+
+  /// No description provided for @achievementFirstDay.
+  ///
+  /// In en, this message translates to:
+  /// **'First day'**
+  String get achievementFirstDay;
+
+  /// No description provided for @achievementThreeDayStreak.
+  ///
+  /// In en, this message translates to:
+  /// **'3-day streak'**
+  String get achievementThreeDayStreak;
+
+  /// No description provided for @achievementSevenDayStreak.
+  ///
+  /// In en, this message translates to:
+  /// **'7-day streak'**
+  String get achievementSevenDayStreak;
+
+  /// No description provided for @achievementFourteenDayStreak.
+  ///
+  /// In en, this message translates to:
+  /// **'14-day streak'**
+  String get achievementFourteenDayStreak;
+
+  /// No description provided for @achievementThirtyDayStreak.
+  ///
+  /// In en, this message translates to:
+  /// **'30-day streak'**
+  String get achievementThirtyDayStreak;
+
+  /// No description provided for @achievementHundredDayStreak.
+  ///
+  /// In en, this message translates to:
+  /// **'100-day streak'**
+  String get achievementHundredDayStreak;
+
+  /// No description provided for @achievementFirstHour.
+  ///
+  /// In en, this message translates to:
+  /// **'First hour'**
+  String get achievementFirstHour;
+
+  /// No description provided for @achievementTenHours.
+  ///
+  /// In en, this message translates to:
+  /// **'10 hours'**
+  String get achievementTenHours;
+
+  /// No description provided for @achievementFiftyHours.
+  ///
+  /// In en, this message translates to:
+  /// **'50 hours'**
+  String get achievementFiftyHours;
+
+  /// No description provided for @achievementHundredHours.
+  ///
+  /// In en, this message translates to:
+  /// **'100 hours'**
+  String get achievementHundredHours;
+
+  /// No description provided for @achievementFirstHundredPages.
+  ///
+  /// In en, this message translates to:
+  /// **'First 100 pages'**
+  String get achievementFirstHundredPages;
+
+  /// No description provided for @achievementFiveHundredPages.
+  ///
+  /// In en, this message translates to:
+  /// **'500 pages'**
+  String get achievementFiveHundredPages;
+
+  /// No description provided for @achievementThousandPages.
+  ///
+  /// In en, this message translates to:
+  /// **'1,000 pages'**
+  String get achievementThousandPages;
+
+  /// No description provided for @achievementFirstCompletedBook.
+  ///
+  /// In en, this message translates to:
+  /// **'First completed book'**
+  String get achievementFirstCompletedBook;
+
+  /// No description provided for @achievementFiveCompletedBooks.
+  ///
+  /// In en, this message translates to:
+  /// **'5 completed books'**
+  String get achievementFiveCompletedBooks;
+
+  /// No description provided for @achievementTenCompletedBooks.
+  ///
+  /// In en, this message translates to:
+  /// **'10 completed books'**
+  String get achievementTenCompletedBooks;
 }
 
 class _AppLocalizationsDelegate

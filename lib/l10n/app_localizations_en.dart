@@ -551,4 +551,99 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get deleteJournalEntryBody =>
       'This reflection will be permanently deleted.';
+
+  @override
+  String get achievements => 'Achievements';
+
+  @override
+  String get achievementStreaks => 'Reading streak';
+
+  @override
+  String get achievementTime => 'Reading time';
+
+  @override
+  String get achievementProgress => 'Reading progress';
+
+  @override
+  String achievementsProgress(Object total, Object unlocked) {
+    return '$unlocked of $total achievements unlocked';
+  }
+
+  @override
+  String achievementUnlocked(Object title) {
+    return 'Achievement unlocked: $title';
+  }
+
+  @override
+  String achievementUnlockedDate(Object date) {
+    return 'Unlocked $date';
+  }
+
+  @override
+  String achievementStreakDescription(Object days) {
+    return 'Reach a $days-day reading streak.';
+  }
+
+  @override
+  String achievementMinutesDescription(Object hours) {
+    return 'Read for $hours hours in total.';
+  }
+
+  @override
+  String achievementPagesDescription(Object pages) {
+    return 'Read $pages pages in total.';
+  }
+
+  @override
+  String achievementBooksDescription(Object books) {
+    return 'Complete $books books.';
+  }
+
+  @override
+  String get achievementFirstDay => 'First day';
+
+  @override
+  String get achievementThreeDayStreak => '3-day streak';
+
+  @override
+  String get achievementSevenDayStreak => '7-day streak';
+
+  @override
+  String get achievementFourteenDayStreak => '14-day streak';
+
+  @override
+  String get achievementThirtyDayStreak => '30-day streak';
+
+  @override
+  String get achievementHundredDayStreak => '100-day streak';
+
+  @override
+  String get achievementFirstHour => 'First hour';
+
+  @override
+  String get achievementTenHours => '10 hours';
+
+  @override
+  String get achievementFiftyHours => '50 hours';
+
+  @override
+  String get achievementHundredHours => '100 hours';
+
+  @override
+  String get achievementFirstHundredPages => 'First 100 pages';
+
+  @override
+  String get achievementFiveHundredPages => '500 pages';
+
+  @override
+  String get achievementThousandPages => '1,000 pages';
+
+  @override
+  String get achievementFirstCompletedBook => 'First completed book';
+
+  @override
+  String get achievementFiveCompletedBooks => '5 completed books';
+
+  @override
+  String get achievementTenCompletedBooks => '10 completed books';
 }

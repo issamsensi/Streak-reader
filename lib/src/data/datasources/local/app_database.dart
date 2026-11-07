@@ -16,7 +16,8 @@ part 'app_database.g.dart';
     Notes,
     JournalEntries,
     Collections,
-    BookCollections
+    BookCollections,
+    AchievementUnlocks,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -25,7 +26,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -61,6 +62,9 @@ class AppDatabase extends _$AppDatabase {
               "UPDATE books SET reading_status = 'completed' "
               'WHERE is_completed = 1',
             );
+          }
+          if (from < 7) {
+            await m.createTable(achievementUnlocks);
           }
         },
       );
@@ -314,5 +318,21 @@ class AppDatabase extends _$AppDatabase {
           ..where((tbl) => tbl.collectionId.equals(collectionId)))
         .get();
     return rows.length;
+  }
+
+  Future<List<AchievementUnlock>> getAchievementUnlocks() =>
+      select(achievementUnlocks).get();
+
+  Future<bool> saveAchievementUnlock(
+    AchievementUnlocksCompanion unlock,
+  ) async {
+    final existing = await (select(achievementUnlocks)
+          ..where((tbl) => tbl.achievementId.equals(unlock.achievementId.value)))
+        .getSingleOrNull();
+    if (existing != null) return false;
+    final inserted = await into(achievementUnlocks).insert(
+      unlock,
+    );
+    return inserted > 0;
   }
 }

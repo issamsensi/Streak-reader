@@ -548,4 +548,99 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get deleteJournalEntryBody => 'سيتم حذف هذا التأمل نهائياً.';
+
+  @override
+  String get achievements => 'الإنجازات';
+
+  @override
+  String get achievementStreaks => 'سلسلة القراءة';
+
+  @override
+  String get achievementTime => 'وقت القراءة';
+
+  @override
+  String get achievementProgress => 'تقدم القراءة';
+
+  @override
+  String achievementsProgress(Object total, Object unlocked) {
+    return 'تم فتح $unlocked من أصل $total إنجازاً';
+  }
+
+  @override
+  String achievementUnlocked(Object title) {
+    return 'تم فتح الإنجاز: $title';
+  }
+
+  @override
+  String achievementUnlockedDate(Object date) {
+    return 'تم الفتح في $date';
+  }
+
+  @override
+  String achievementStreakDescription(Object days) {
+    return 'حقق سلسلة قراءة لمدة $days يوماً.';
+  }
+
+  @override
+  String achievementMinutesDescription(Object hours) {
+    return 'اقرأ لمدة $hours ساعات إجمالاً.';
+  }
+
+  @override
+  String achievementPagesDescription(Object pages) {
+    return 'اقرأ $pages صفحة إجمالاً.';
+  }
+
+  @override
+  String achievementBooksDescription(Object books) {
+    return 'أكمل $books كتب.';
+  }
+
+  @override
+  String get achievementFirstDay => 'اليوم الأول';
+
+  @override
+  String get achievementThreeDayStreak => 'سلسلة 3 أيام';
+
+  @override
+  String get achievementSevenDayStreak => 'سلسلة 7 أيام';
+
+  @override
+  String get achievementFourteenDayStreak => 'سلسلة 14 يوماً';
+
+  @override
+  String get achievementThirtyDayStreak => 'سلسلة 30 يوماً';
+
+  @override
+  String get achievementHundredDayStreak => 'سلسلة 100 يوم';
+
+  @override
+  String get achievementFirstHour => 'الساعة الأولى';
+
+  @override
+  String get achievementTenHours => '10 ساعات';
+
+  @override
+  String get achievementFiftyHours => '50 ساعة';
+
+  @override
+  String get achievementHundredHours => '100 ساعة';
+
+  @override
+  String get achievementFirstHundredPages => 'أول 100 صفحة';
+
+  @override
+  String get achievementFiveHundredPages => '500 صفحة';
+
+  @override
+  String get achievementThousandPages => '1,000 صفحة';
+
+  @override
+  String get achievementFirstCompletedBook => 'أول كتاب مكتمل';
+
+  @override
+  String get achievementFiveCompletedBooks => '5 كتب مكتملة';
+
+  @override
+  String get achievementTenCompletedBooks => '10 كتب مكتملة';
 }
