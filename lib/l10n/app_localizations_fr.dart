@@ -247,4 +247,41 @@ class AppLocalizationsFr extends AppLocalizations {
   String minutesShort(int minutes) {
     return '$minutes min';
   }
+
+  @override
+  String get dailyReadingGoal => 'Objectif de lecture quotidien';
+
+  @override
+  String get dailyGoalDescription =>
+      'Choisissez le nombre de minutes à lire chaque jour.';
+
+  @override
+  String get currentGoal => 'Objectif actuel';
+
+  @override
+  String get customGoal => 'Personnalisé';
+
+  @override
+  String get customGoalTitle => 'Objectif quotidien personnalisé';
+
+  @override
+  String get customGoalHint => 'Minutes par jour';
+
+  @override
+  String customGoalInvalid(int min, int max) {
+    return 'Saisissez un nombre entre $min et $max.';
+  }
+
+  @override
+  String dailyGoalProgress(int minutes, int goal) {
+    return '$minutes / $goal min';
+  }
+
+  @override
+  String get dailyGoalReached => 'Objectif quotidien atteint !';
+
+  @override
+  String dailyGoalRemaining(int minutes) {
+    return 'Encore $minutes min';
+  }
 }

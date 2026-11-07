@@ -73,5 +73,15 @@
   "activeReadingDays": "Jours de lecture actifs",
   "readingDuration": "Durée de lecture",
   "sessions": "Sessions",
-  "minutesShort": "{minutes} min"
+  "minutesShort": "{minutes} min",
+  "dailyReadingGoal": "Objectif de lecture quotidien",
+  "dailyGoalDescription": "Choisissez le nombre de minutes à lire chaque jour.",
+  "currentGoal": "Objectif actuel",
+  "customGoal": "Personnalisé",
+  "customGoalTitle": "Objectif quotidien personnalisé",
+  "customGoalHint": "Minutes par jour",
+  "customGoalInvalid": "Saisissez un nombre entre {min} et {max}.",
+  "dailyGoalProgress": "{minutes} / {goal} min",
+  "dailyGoalReached": "Objectif quotidien atteint !",
+  "dailyGoalRemaining": "Encore {minutes} min"
 }

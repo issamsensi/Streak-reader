@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/di/providers.dart';
 import '../../../core/utils/date_only.dart';
 import '../../../domain/usecases/build_reading_calendar.dart';
+import '../../settings/providers/settings_provider.dart';
 
 /// Reading activity for the month containing the supplied [DateTime].
 ///
@@ -11,6 +12,7 @@ import '../../../domain/usecases/build_reading_calendar.dart';
 final readingCalendarProvider =
     FutureProvider.family<ReadingCalendarMonth, DateTime>((ref, month) async {
   ref.watch(dataRevisionProvider);
+  final settings = ref.watch(settingsProvider);
   final db = ref.watch(databaseProvider);
   final monthStart = DateOnly.monthStart(month);
   final lastDay = DateTime.utc(monthStart.year, monthStart.month + 1, 0);
@@ -20,5 +22,7 @@ final readingCalendarProvider =
     DateOnly.key(lastDay),
   );
 
-  return const BuildReadingCalendar()(sessions, monthStart);
+  return BuildReadingCalendar(
+    goalMinutesForDate: settings.dailyGoalHistory.minutesForDateKey,
+  )(sessions, monthStart);
 });

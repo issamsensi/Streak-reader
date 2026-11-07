@@ -73,5 +73,15 @@
   "activeReadingDays": "أيام القراءة النشطة",
   "readingDuration": "مدة القراءة",
   "sessions": "الجلسات",
-  "minutesShort": "{minutes} د"
+  "minutesShort": "{minutes} د",
+  "dailyReadingGoal": "هدف القراءة اليومي",
+  "dailyGoalDescription": "اختر عدد الدقائق التي تريد قراءتها كل يوم.",
+  "currentGoal": "الهدف الحالي",
+  "customGoal": "مخصص",
+  "customGoalTitle": "هدف يومي مخصص",
+  "customGoalHint": "عدد الدقائق يومياً",
+  "customGoalInvalid": "أدخل عدداً بين {min} و{max}.",
+  "dailyGoalProgress": "{minutes} / {goal} دقيقة",
+  "dailyGoalReached": "تم إنجاز الهدف اليومي!",
+  "dailyGoalRemaining": "متبقٍ {minutes} دقيقة"
 }

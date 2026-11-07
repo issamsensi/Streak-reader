@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/usecases/calculate_streak.dart';
-import '../constants/app_constants.dart';
 import '../l10n/l10n_extension.dart';
 import '../theme/app_theme.dart';
 
@@ -120,8 +119,7 @@ class StreakBanner extends StatelessWidget {
                                   ),
                                   child: Text(
                                     l10n.day,
-                                    style:
-                                        theme.textTheme.bodyMedium?.copyWith(
+                                    style: theme.textTheme.bodyMedium?.copyWith(
                                       color: fadedText,
                                     ),
                                   ),
@@ -193,7 +191,7 @@ class StreakBanner extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        l10n.streakGoalHint(AppConstants.streakMinMinutes),
+                        l10n.streakGoalHint(stats.todayGoalMinutes),
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: fadedText,
                         ),

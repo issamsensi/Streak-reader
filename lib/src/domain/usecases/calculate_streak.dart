@@ -2,12 +2,18 @@ import '../../core/constants/app_constants.dart';
 import '../../core/utils/date_only.dart';
 import '../../data/datasources/local/app_database.dart';
 
+/// Resolves the daily goal that applied on a stored `YYYY-MM-DD` date.
+typedef DailyGoalMinutesResolver = int Function(String dateKey);
+
 class StreakResult {
   final int currentStreak;
   final int longestStreak;
   final int totalMinutes;
   final int completedBooks;
   final int totalPagesRead;
+  final int todaySeconds;
+  final int todayMinutes;
+  final int todayGoalMinutes;
 
   const StreakResult({
     required this.currentStreak,
@@ -15,6 +21,9 @@ class StreakResult {
     required this.totalMinutes,
     required this.completedBooks,
     required this.totalPagesRead,
+    this.todaySeconds = 0,
+    this.todayMinutes = 0,
+    this.todayGoalMinutes = AppConstants.defaultDailyGoalMinutes,
   });
 }
 
@@ -22,10 +31,22 @@ class CalculateStreak {
   /// Injectable clock so streak boundaries can be tested deterministically.
   final DateTime Function() _now;
 
-  CalculateStreak({DateTime Function()? now}) : _now = now ?? DateTime.now;
+  /// Per-day goal lookup. Defaults to the pre-customization goal so old data
+  /// and existing callers keep their historical completion records.
+  final DailyGoalMinutesResolver _goalMinutesForDate;
+
+  CalculateStreak({
+    DateTime Function()? now,
+    DailyGoalMinutesResolver? goalMinutesForDate,
+  })  : _now = now ?? DateTime.now,
+        _goalMinutesForDate = goalMinutesForDate ?? _defaultGoalForDate;
+
+  static int _defaultGoalForDate(String _) =>
+      AppConstants.defaultDailyGoalMinutes;
 
   StreakResult call(List<ReadingSession> sessions, List<Book> books) {
     final completedBooks = books.where((b) => b.isCompleted).length;
+    final todayKey = DateOnly.key(DateOnly.fromDate(_now()));
 
     if (sessions.isEmpty) {
       return StreakResult(
@@ -34,6 +55,9 @@ class CalculateStreak {
         totalMinutes: 0,
         completedBooks: completedBooks,
         totalPagesRead: 0,
+        todaySeconds: 0,
+        todayMinutes: 0,
+        todayGoalMinutes: _goalMinutesForDate(todayKey),
       );
     }
 
@@ -50,16 +74,17 @@ class CalculateStreak {
           (secondsByDate[session.date] ?? 0) + session.durationSeconds;
     }
 
-    const thresholdSeconds = AppConstants.streakMinMinutes * 60;
     final qualifyingDates = <DateTime>{};
     for (final entry in secondsByDate.entries) {
-      if (entry.value < thresholdSeconds) continue;
+      final goalSeconds = _goalMinutesForDate(entry.key) * 60;
+      if (entry.value < goalSeconds) continue;
       final date = DateOnly.tryParse(entry.key);
       if (date != null) qualifyingDates.add(date);
     }
 
     final longest = _longestRun(qualifyingDates);
     final current = _currentRun(qualifyingDates);
+    final todaySeconds = secondsByDate[todayKey] ?? 0;
 
     return StreakResult(
       currentStreak: current,
@@ -67,6 +92,9 @@ class CalculateStreak {
       totalMinutes: totalSeconds ~/ 60,
       completedBooks: completedBooks,
       totalPagesRead: totalPages,
+      todaySeconds: todaySeconds,
+      todayMinutes: todaySeconds ~/ 60,
+      todayGoalMinutes: _goalMinutesForDate(todayKey),
     );
   }
 

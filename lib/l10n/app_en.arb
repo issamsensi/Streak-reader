@@ -108,5 +108,42 @@
         "type": "int"
       }
     }
+  },
+  "dailyReadingGoal": "Daily reading goal",
+  "dailyGoalDescription": "Choose how many minutes you want to read each day.",
+  "currentGoal": "Current goal",
+  "customGoal": "Custom",
+  "customGoalTitle": "Custom daily goal",
+  "customGoalHint": "Minutes per day",
+  "customGoalInvalid": "Enter a number between {min} and {max}.",
+  "@customGoalInvalid": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "dailyGoalProgress": "{minutes} / {goal} min",
+  "@dailyGoalProgress": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      },
+      "goal": {
+        "type": "int"
+      }
+    }
+  },
+  "dailyGoalReached": "Daily goal completed!",
+  "dailyGoalRemaining": "{minutes} min left",
+  "@dailyGoalRemaining": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
   }
 }

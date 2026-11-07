@@ -1,6 +1,7 @@
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/date_only.dart';
 import '../../data/datasources/local/app_database.dart';
+import 'calculate_streak.dart';
 
 /// Aggregated reading activity for one calendar day.
 class ReadingDayActivity {
@@ -10,6 +11,7 @@ class ReadingDayActivity {
   final int totalMinutes;
   final int pagesRead;
   final int sessionCount;
+  final int goalMinutes;
   final bool goalMet;
 
   const ReadingDayActivity({
@@ -19,6 +21,7 @@ class ReadingDayActivity {
     required this.pagesRead,
     required this.sessionCount,
     required this.goalMet,
+    this.goalMinutes = AppConstants.defaultDailyGoalMinutes,
   });
 
   bool get hasActivity => sessionCount > 0;
@@ -64,15 +67,24 @@ class ReadingCalendarMonth {
 /// records are ignored here as an additional guard. Multiple sessions on the
 /// same day are aggregated rather than duplicated.
 class BuildReadingCalendar {
-  final int goalMinutes;
+  /// Legacy single goal used when [goalMinutesForDate] is not supplied.
+  final int? goalMinutes;
+
+  /// Resolves the goal that applied on the stored `YYYY-MM-DD` date.
+  final DailyGoalMinutesResolver? goalMinutesForDate;
 
   const BuildReadingCalendar({
-    this.goalMinutes = AppConstants.streakMinMinutes,
+    this.goalMinutes,
+    this.goalMinutesForDate,
   });
+
+  int _goalForDate(String dateKey) =>
+      goalMinutesForDate?.call(dateKey) ??
+      goalMinutes ??
+      AppConstants.defaultDailyGoalMinutes;
 
   ReadingCalendarMonth call(List<ReadingSession> sessions, DateTime month) {
     final monthStart = DateOnly.monthStart(month);
-    final goalSeconds = goalMinutes * 60;
 
     final totalsByDate = <String, _DayTotals>{};
     for (final session in sessions) {
@@ -95,13 +107,15 @@ class BuildReadingCalendar {
     final days = <String, ReadingDayActivity>{};
     for (final entry in totalsByDate.entries) {
       final totals = entry.value;
+      final goalMinutes = _goalForDate(entry.key);
       days[entry.key] = ReadingDayActivity(
         date: totals.date,
         totalSeconds: totals.totalSeconds,
         totalMinutes: totals.totalSeconds ~/ 60,
         pagesRead: totals.pagesRead,
         sessionCount: totals.sessionCount,
-        goalMet: totals.totalSeconds >= goalSeconds,
+        goalMinutes: goalMinutes,
+        goalMet: totals.totalSeconds >= goalMinutes * 60,
       );
     }
 

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/constants/app_constants.dart';
 import '../../../core/l10n/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
 import '../providers/settings_provider.dart';
@@ -15,12 +17,27 @@ class SettingsScreen extends ConsumerWidget {
     ('fr', 'Français'),
   ];
 
+  Future<void> _showCustomGoalDialog(
+    BuildContext context,
+    WidgetRef ref,
+    int initialMinutes,
+  ) async {
+    final minutes = await showDialog<int>(
+      context: context,
+      builder: (_) => _CustomGoalDialog(initialMinutes: initialMinutes),
+    );
+    if (minutes == null) return;
+    await ref.read(settingsProvider.notifier).setDailyGoal(minutes);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
     final settings = ref.watch(settingsProvider);
     final controller = ref.read(settingsProvider.notifier);
+    final isCustomGoal =
+        !AppConstants.dailyGoalPresets.contains(settings.dailyGoalMinutes);
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settings)),
@@ -51,6 +68,57 @@ class SettingsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           _SettingsSection(
+            icon: Icons.flag_rounded,
+            title: l10n.dailyReadingGoal,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(8, 4, 8, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.dailyGoalDescription,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final minutes in AppConstants.dailyGoalPresets)
+                        ChoiceChip(
+                          label: Text('$minutes ${l10n.minute}'),
+                          selected: !isCustomGoal &&
+                              settings.dailyGoalMinutes == minutes,
+                          onSelected: (_) => controller.setDailyGoal(minutes),
+                        ),
+                      ChoiceChip(
+                        avatar: const Icon(Icons.edit_rounded, size: 16),
+                        label: Text(l10n.customGoal),
+                        selected: isCustomGoal,
+                        onSelected: (_) => _showCustomGoalDialog(
+                          context,
+                          ref,
+                          settings.dailyGoalMinutes,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    '${l10n.currentGoal}: '
+                    '${settings.dailyGoalMinutes} ${l10n.minute}',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          _SettingsSection(
             icon: Icons.palette_outlined,
             title: l10n.theme,
             child: RadioGroup<ThemeMode>(
@@ -67,8 +135,7 @@ class SettingsScreen extends ConsumerWidget {
                       Icons.brightness_auto_rounded,
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 8),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8),
                   ),
                   RadioListTile<ThemeMode>(
                     value: ThemeMode.light,
@@ -77,8 +144,7 @@ class SettingsScreen extends ConsumerWidget {
                       Icons.light_mode_outlined,
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 8),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8),
                   ),
                   RadioListTile<ThemeMode>(
                     value: ThemeMode.dark,
@@ -87,8 +153,7 @@ class SettingsScreen extends ConsumerWidget {
                       Icons.dark_mode_outlined,
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 8),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8),
                   ),
                 ],
               ),
@@ -181,7 +246,14 @@ class _SettingsSection extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Text(title, style: theme.textTheme.titleMedium),
+                  Expanded(
+                    child: Text(
+                      title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleMedium,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -190,6 +262,80 @@ class _SettingsSection extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _CustomGoalDialog extends StatefulWidget {
+  final int initialMinutes;
+
+  const _CustomGoalDialog({required this.initialMinutes});
+
+  @override
+  State<_CustomGoalDialog> createState() => _CustomGoalDialogState();
+}
+
+class _CustomGoalDialogState extends State<_CustomGoalDialog> {
+  late final TextEditingController _controller;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: '${widget.initialMinutes}');
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    final l10n = context.l10n;
+    final minutes = int.tryParse(_controller.text.trim());
+    if (minutes == null || !AppConstants.isValidDailyGoal(minutes)) {
+      setState(() {
+        _error = l10n.customGoalInvalid(
+          AppConstants.minDailyGoalMinutes,
+          AppConstants.maxDailyGoalMinutes,
+        );
+      });
+      return;
+    }
+    Navigator.of(context).pop(minutes);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
+    return AlertDialog(
+      title: Text(l10n.customGoalTitle),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        keyboardType: TextInputType.number,
+        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+        decoration: InputDecoration(
+          labelText: l10n.customGoalHint,
+          errorText: _error,
+        ),
+        onChanged: (_) {
+          if (_error != null) setState(() => _error = null);
+        },
+        onSubmitted: (_) => _save(),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l10n.cancel),
+        ),
+        FilledButton(
+          onPressed: _save,
+          child: Text(l10n.save),
+        ),
+      ],
     );
   }
 }

@@ -9,6 +9,7 @@ import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/streak_banner.dart';
 import '../../../data/datasources/local/app_database.dart';
 import '../../calendar/presentation/reading_calendar_screen.dart';
+import '../../daily_goal/presentation/daily_goal_card.dart';
 import '../../reader/presentation/pdf_reader_screen.dart';
 import '../../settings/presentation/settings_screen.dart';
 import '../../stats/presentation/stats_screen.dart';
@@ -291,6 +292,8 @@ class BooksListScreen extends ConsumerWidget {
                   children: [
                     if (stats != null) ...[
                       StreakBanner(stats: stats, compact: true),
+                      const SizedBox(height: 12),
+                      const DailyGoalCard(),
                       const SizedBox(height: 26),
                     ],
                     Row(

@@ -244,4 +244,41 @@ class AppLocalizationsAr extends AppLocalizations {
   String minutesShort(int minutes) {
     return '$minutes د';
   }
+
+  @override
+  String get dailyReadingGoal => 'هدف القراءة اليومي';
+
+  @override
+  String get dailyGoalDescription =>
+      'اختر عدد الدقائق التي تريد قراءتها كل يوم.';
+
+  @override
+  String get currentGoal => 'الهدف الحالي';
+
+  @override
+  String get customGoal => 'مخصص';
+
+  @override
+  String get customGoalTitle => 'هدف يومي مخصص';
+
+  @override
+  String get customGoalHint => 'عدد الدقائق يومياً';
+
+  @override
+  String customGoalInvalid(int min, int max) {
+    return 'أدخل عدداً بين $min و$max.';
+  }
+
+  @override
+  String dailyGoalProgress(int minutes, int goal) {
+    return '$minutes / $goal دقيقة';
+  }
+
+  @override
+  String get dailyGoalReached => 'تم إنجاز الهدف اليومي!';
+
+  @override
+  String dailyGoalRemaining(int minutes) {
+    return 'متبقٍ $minutes دقيقة';
+  }
 }

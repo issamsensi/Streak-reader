@@ -543,6 +543,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{minutes}m'**
   String minutesShort(int minutes);
+
+  /// No description provided for @dailyReadingGoal.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily reading goal'**
+  String get dailyReadingGoal;
+
+  /// No description provided for @dailyGoalDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose how many minutes you want to read each day.'**
+  String get dailyGoalDescription;
+
+  /// No description provided for @currentGoal.
+  ///
+  /// In en, this message translates to:
+  /// **'Current goal'**
+  String get currentGoal;
+
+  /// No description provided for @customGoal.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get customGoal;
+
+  /// No description provided for @customGoalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom daily goal'**
+  String get customGoalTitle;
+
+  /// No description provided for @customGoalHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Minutes per day'**
+  String get customGoalHint;
+
+  /// No description provided for @customGoalInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a number between {min} and {max}.'**
+  String customGoalInvalid(int min, int max);
+
+  /// No description provided for @dailyGoalProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} / {goal} min'**
+  String dailyGoalProgress(int minutes, int goal);
+
+  /// No description provided for @dailyGoalReached.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily goal completed!'**
+  String get dailyGoalReached;
+
+  /// No description provided for @dailyGoalRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min left'**
+  String dailyGoalRemaining(int minutes);
 }
 
 class _AppLocalizationsDelegate
