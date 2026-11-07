@@ -197,4 +197,51 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deleteFailed => 'Could not delete the book. Please try again.';
+
+  @override
+  String get readingCalendar => 'Reading calendar';
+
+  @override
+  String get today => 'Today';
+
+  @override
+  String get previousMonth => 'Previous month';
+
+  @override
+  String get nextMonth => 'Next month';
+
+  @override
+  String get dailyGoal => 'Daily goal';
+
+  @override
+  String get goalAchieved => 'Goal achieved';
+
+  @override
+  String get goalNotAchieved => 'Goal not achieved';
+
+  @override
+  String get readingActivity => 'Reading activity';
+
+  @override
+  String get noActivity => 'No activity';
+
+  @override
+  String get noReadingThisMonth => 'No reading activity this month.';
+
+  @override
+  String get monthSummary => 'Monthly summary';
+
+  @override
+  String get activeReadingDays => 'Active reading days';
+
+  @override
+  String get readingDuration => 'Reading duration';
+
+  @override
+  String get sessions => 'Sessions';
+
+  @override
+  String minutesShort(int minutes) {
+    return '${minutes}m';
+  }
 }

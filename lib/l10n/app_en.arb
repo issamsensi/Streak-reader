@@ -86,5 +86,27 @@
   "readerLoadError": "Could not open this PDF.",
   "loadingPdf": "Preparing PDF…",
   "saveFailed": "Could not save changes. Please try again.",
-  "deleteFailed": "Could not delete the book. Please try again."
+  "deleteFailed": "Could not delete the book. Please try again.",
+  "readingCalendar": "Reading calendar",
+  "today": "Today",
+  "previousMonth": "Previous month",
+  "nextMonth": "Next month",
+  "dailyGoal": "Daily goal",
+  "goalAchieved": "Goal achieved",
+  "goalNotAchieved": "Goal not achieved",
+  "readingActivity": "Reading activity",
+  "noActivity": "No activity",
+  "noReadingThisMonth": "No reading activity this month.",
+  "monthSummary": "Monthly summary",
+  "activeReadingDays": "Active reading days",
+  "readingDuration": "Reading duration",
+  "sessions": "Sessions",
+  "minutesShort": "{minutes}m",
+  "@minutesShort": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  }
 }

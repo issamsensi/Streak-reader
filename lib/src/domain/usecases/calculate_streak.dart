@@ -1,4 +1,5 @@
 import '../../core/constants/app_constants.dart';
+import '../../core/utils/date_only.dart';
 import '../../data/datasources/local/app_database.dart';
 
 class StreakResult {
@@ -53,7 +54,7 @@ class CalculateStreak {
     final qualifyingDates = <DateTime>{};
     for (final entry in secondsByDate.entries) {
       if (entry.value < thresholdSeconds) continue;
-      final date = _parseDate(entry.key);
+      final date = DateOnly.tryParse(entry.key);
       if (date != null) qualifyingDates.add(date);
     }
 
@@ -92,7 +93,7 @@ class CalculateStreak {
     if (dates.isEmpty) return 0;
 
     final now = _now();
-    var cursor = DateTime.utc(now.year, now.month, now.day);
+    var cursor = DateOnly.fromDate(now);
 
     if (!dates.contains(cursor)) {
       cursor = cursor.subtract(const Duration(days: 1));
@@ -105,17 +106,5 @@ class CalculateStreak {
       cursor = cursor.subtract(const Duration(days: 1));
     }
     return count;
-  }
-
-  /// Parses stored `YYYY-MM-DD` keys as UTC dates so day arithmetic is not
-  /// affected by daylight-saving transitions (23/25 hour days).
-  DateTime? _parseDate(String value) {
-    final parts = value.split('-');
-    if (parts.length != 3) return null;
-    final year = int.tryParse(parts[0]);
-    final month = int.tryParse(parts[1]);
-    final day = int.tryParse(parts[2]);
-    if (year == null || month == null || day == null) return null;
-    return DateTime.utc(year, month, day);
   }
 }

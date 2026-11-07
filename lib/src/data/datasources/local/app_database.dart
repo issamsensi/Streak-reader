@@ -44,4 +44,13 @@ class AppDatabase extends _$AppDatabase {
       select(readingSessions).get();
   Future<List<ReadingSession>> getSessionsForDate(String date) =>
       (select(readingSessions)..where((tbl) => tbl.date.equals(date))).get();
+
+  /// Inclusive range query over the `YYYY-MM-DD` date column.
+  Future<List<ReadingSession>> getSessionsForDateRange(
+    String startDate,
+    String endDate,
+  ) =>
+      (select(readingSessions)
+            ..where((tbl) => tbl.date.isBetweenValues(startDate, endDate)))
+          .get();
 }

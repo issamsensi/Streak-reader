@@ -197,4 +197,51 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get deleteFailed => 'تعذر حذف الكتاب. حاول مرة أخرى.';
+
+  @override
+  String get readingCalendar => 'تقويم القراءة';
+
+  @override
+  String get today => 'اليوم';
+
+  @override
+  String get previousMonth => 'الشهر السابق';
+
+  @override
+  String get nextMonth => 'الشهر التالي';
+
+  @override
+  String get dailyGoal => 'الهدف اليومي';
+
+  @override
+  String get goalAchieved => 'تم تحقيق الهدف';
+
+  @override
+  String get goalNotAchieved => 'لم يتم تحقيق الهدف';
+
+  @override
+  String get readingActivity => 'نشاط قراءة';
+
+  @override
+  String get noActivity => 'لا يوجد نشاط';
+
+  @override
+  String get noReadingThisMonth => 'لا يوجد نشاط قراءة هذا الشهر.';
+
+  @override
+  String get monthSummary => 'ملخص الشهر';
+
+  @override
+  String get activeReadingDays => 'أيام القراءة النشطة';
+
+  @override
+  String get readingDuration => 'مدة القراءة';
+
+  @override
+  String get sessions => 'الجلسات';
+
+  @override
+  String minutesShort(int minutes) {
+    return '$minutes د';
+  }
 }

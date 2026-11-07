@@ -453,6 +453,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not delete the book. Please try again.'**
   String get deleteFailed;
+
+  /// No description provided for @readingCalendar.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading calendar'**
+  String get readingCalendar;
+
+  /// No description provided for @today.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get today;
+
+  /// No description provided for @previousMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous month'**
+  String get previousMonth;
+
+  /// No description provided for @nextMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Next month'**
+  String get nextMonth;
+
+  /// No description provided for @dailyGoal.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily goal'**
+  String get dailyGoal;
+
+  /// No description provided for @goalAchieved.
+  ///
+  /// In en, this message translates to:
+  /// **'Goal achieved'**
+  String get goalAchieved;
+
+  /// No description provided for @goalNotAchieved.
+  ///
+  /// In en, this message translates to:
+  /// **'Goal not achieved'**
+  String get goalNotAchieved;
+
+  /// No description provided for @readingActivity.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading activity'**
+  String get readingActivity;
+
+  /// No description provided for @noActivity.
+  ///
+  /// In en, this message translates to:
+  /// **'No activity'**
+  String get noActivity;
+
+  /// No description provided for @noReadingThisMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'No reading activity this month.'**
+  String get noReadingThisMonth;
+
+  /// No description provided for @monthSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly summary'**
+  String get monthSummary;
+
+  /// No description provided for @activeReadingDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Active reading days'**
+  String get activeReadingDays;
+
+  /// No description provided for @readingDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading duration'**
+  String get readingDuration;
+
+  /// No description provided for @sessions.
+  ///
+  /// In en, this message translates to:
+  /// **'Sessions'**
+  String get sessions;
+
+  /// No description provided for @minutesShort.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes}m'**
+  String minutesShort(int minutes);
 }
 
 class _AppLocalizationsDelegate

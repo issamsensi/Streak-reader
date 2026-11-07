@@ -58,5 +58,20 @@
   "readerLoadError": "تعذر فتح ملف PDF.",
   "loadingPdf": "جارٍ تجهيز ملف PDF…",
   "saveFailed": "تعذر حفظ التغييرات. حاول مرة أخرى.",
-  "deleteFailed": "تعذر حذف الكتاب. حاول مرة أخرى."
+  "deleteFailed": "تعذر حذف الكتاب. حاول مرة أخرى.",
+  "readingCalendar": "تقويم القراءة",
+  "today": "اليوم",
+  "previousMonth": "الشهر السابق",
+  "nextMonth": "الشهر التالي",
+  "dailyGoal": "الهدف اليومي",
+  "goalAchieved": "تم تحقيق الهدف",
+  "goalNotAchieved": "لم يتم تحقيق الهدف",
+  "readingActivity": "نشاط قراءة",
+  "noActivity": "لا يوجد نشاط",
+  "noReadingThisMonth": "لا يوجد نشاط قراءة هذا الشهر.",
+  "monthSummary": "ملخص الشهر",
+  "activeReadingDays": "أيام القراءة النشطة",
+  "readingDuration": "مدة القراءة",
+  "sessions": "الجلسات",
+  "minutesShort": "{minutes} د"
 }

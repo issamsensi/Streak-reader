@@ -9,7 +9,8 @@ import 'package:streak_reader/src/core/di/providers.dart';
 import 'package:streak_reader/src/data/datasources/local/app_database.dart';
 
 void main() {
-  testWidgets('core screens lay out on a small phone with large text', (tester) async {
+  testWidgets('core screens lay out on a small phone with large text',
+      (tester) async {
     tester.view.physicalSize = const Size(320, 640);
     tester.view.devicePixelRatio = 1;
     tester.platformDispatcher.textScaleFactorTestValue = 1.4;
@@ -37,6 +38,13 @@ void main() {
     expect(tester.takeException(), isNull);
 
     await tester.tap(find.byIcon(Icons.bar_chart_rounded));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('open-reading-calendar')));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
 

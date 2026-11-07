@@ -8,6 +8,7 @@ import '../../../core/utils/file_exists.dart';
 import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/streak_banner.dart';
 import '../../../data/datasources/local/app_database.dart';
+import '../../calendar/presentation/reading_calendar_screen.dart';
 import '../../reader/presentation/pdf_reader_screen.dart';
 import '../../settings/presentation/settings_screen.dart';
 import '../../stats/presentation/stats_screen.dart';
@@ -243,6 +244,18 @@ class BooksListScreen extends ConsumerWidget {
             },
             icon: const Icon(Icons.bar_chart_rounded),
             tooltip: l10n.statistics,
+          ),
+          const SizedBox(width: 8),
+          IconButton.filledTonal(
+            key: const ValueKey('open-reading-calendar'),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                    builder: (_) => const ReadingCalendarScreen()),
+              );
+            },
+            icon: const Icon(Icons.calendar_month_rounded),
+            tooltip: l10n.readingCalendar,
           ),
           const SizedBox(width: 8),
           Padding(

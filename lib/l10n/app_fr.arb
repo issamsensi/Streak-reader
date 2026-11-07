@@ -58,5 +58,20 @@
   "readerLoadError": "Impossible d'ouvrir ce PDF.",
   "loadingPdf": "Préparation du PDF…",
   "saveFailed": "Impossible d'enregistrer les modifications. Réessayez.",
-  "deleteFailed": "Impossible de supprimer le livre. Réessayez."
+  "deleteFailed": "Impossible de supprimer le livre. Réessayez.",
+  "readingCalendar": "Calendrier de lecture",
+  "today": "Aujourd'hui",
+  "previousMonth": "Mois précédent",
+  "nextMonth": "Mois suivant",
+  "dailyGoal": "Objectif quotidien",
+  "goalAchieved": "Objectif atteint",
+  "goalNotAchieved": "Objectif non atteint",
+  "readingActivity": "Activité de lecture",
+  "noActivity": "Aucune activité",
+  "noReadingThisMonth": "Aucune activité de lecture ce mois-ci.",
+  "monthSummary": "Résumé mensuel",
+  "activeReadingDays": "Jours de lecture actifs",
+  "readingDuration": "Durée de lecture",
+  "sessions": "Sessions",
+  "minutesShort": "{minutes} min"
 }
