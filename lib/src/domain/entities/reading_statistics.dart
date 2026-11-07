@@ -25,11 +25,19 @@ class BookReadingProgress {
   final Book book;
   final int pagesRead;
   final int secondsRead;
+  final int sessionCount;
+  final int digitalSecondsRead;
+  final int physicalSecondsRead;
+  final String? lastReadingDate;
 
   const BookReadingProgress({
     required this.book,
     required this.pagesRead,
     required this.secondsRead,
+    this.sessionCount = 0,
+    this.digitalSecondsRead = 0,
+    this.physicalSecondsRead = 0,
+    this.lastReadingDate,
   });
 }
 
@@ -83,6 +91,10 @@ class ReadingStatistics {
     final secondsByDate = <String, int>{};
     final pagesByBook = <int, int>{};
     final secondsByBook = <int, int>{};
+    final sessionsByBook = <int, int>{};
+    final digitalSecondsByBook = <int, int>{};
+    final physicalSecondsByBook = <int, int>{};
+    final lastDateByBook = <int, String>{};
     var totalSeconds = 0;
     for (final session in validSessions) {
       totalSeconds += session.durationSeconds;
@@ -92,6 +104,21 @@ class ReadingStatistics {
           (pagesByBook[session.bookId] ?? 0) + session.pagesRead;
       secondsByBook[session.bookId] =
           (secondsByBook[session.bookId] ?? 0) + session.durationSeconds;
+      sessionsByBook[session.bookId] =
+          (sessionsByBook[session.bookId] ?? 0) + 1;
+      if (session.readingMode == 'physical') {
+        physicalSecondsByBook[session.bookId] =
+            (physicalSecondsByBook[session.bookId] ?? 0) +
+                session.durationSeconds;
+      } else {
+        digitalSecondsByBook[session.bookId] =
+            (digitalSecondsByBook[session.bookId] ?? 0) +
+                session.durationSeconds;
+      }
+      final previousDate = lastDateByBook[session.bookId];
+      if (previousDate == null || session.date.compareTo(previousDate) > 0) {
+        lastDateByBook[session.bookId] = session.date;
+      }
     }
 
     final activeDays = secondsByDate.values.where((value) => value > 0).length;
@@ -147,6 +174,10 @@ class ReadingStatistics {
             book: book,
             pagesRead: pagesByBook[book.id]!,
             secondsRead: secondsByBook[book.id]!,
+            sessionCount: sessionsByBook[book.id]!,
+            digitalSecondsRead: digitalSecondsByBook[book.id] ?? 0,
+            physicalSecondsRead: physicalSecondsByBook[book.id] ?? 0,
+            lastReadingDate: lastDateByBook[book.id],
           ),
         )
         .toList()

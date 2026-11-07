@@ -29,7 +29,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -71,6 +71,10 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 8) {
             await m.createTable(syncRecords);
+          }
+          if (from < 9) {
+            await m.addColumn(readingSessions, readingSessions.readingMode);
+            await m.addColumn(readingSessions, readingSessions.note);
           }
         },
       );
@@ -152,15 +156,25 @@ class AppDatabase extends _$AppDatabase {
   Future<bool> updateSession(
     int id,
     ReadingSessionsCompanion session,
-  ) =>
-      (update(readingSessions)..where((tbl) => tbl.id.equals(id)))
-          .write(session)
-          .then((count) => count > 0);
+  ) async {
+    final updated =
+        await (update(readingSessions)..where((tbl) => tbl.id.equals(id)))
+            .write(session);
+    if (updated > 0) await _queueSession(id);
+    return updated > 0;
+  }
 
   Future<int> deleteSession(int id) =>
       (delete(readingSessions)..where((tbl) => tbl.id.equals(id))).go();
   Future<List<ReadingSession>> getSessionsForDate(String date) =>
       (select(readingSessions)..where((tbl) => tbl.date.equals(date))).get();
+  Future<List<ReadingSession>> getSessionsForBook(int bookId) =>
+      (select(readingSessions)
+            ..where((tbl) =>
+                tbl.bookId.equals(bookId) &
+                (tbl.startTime.isNull() | tbl.endTime.isNotNull()))
+            ..orderBy([(tbl) => OrderingTerm.desc(tbl.id)]))
+          .get();
 
   /// Inclusive range query over the `YYYY-MM-DD` date column.
   Future<List<ReadingSession>> getSessionsForDateRange(
@@ -371,11 +385,15 @@ class AppDatabase extends _$AppDatabase {
       payload: jsonEncode({
         'id': session.id,
         'bookId': session.bookId,
+        'date': session.date,
         'startTime': session.startTime?.toUtc().toIso8601String(),
         'endTime': session.endTime?.toUtc().toIso8601String(),
         'durationSeconds': session.durationSeconds,
+        'pagesRead': session.pagesRead,
         'startingPage': session.startingPage,
         'endingPage': session.endingPage,
+        'readingMode': session.readingMode,
+        'note': session.note,
       }),
       updatedAt: DateTime.now().toUtc(),
     );
@@ -404,7 +422,12 @@ class AppDatabase extends _$AppDatabase {
   Future<List<SyncRecord>> getAllSyncRecords() => select(syncRecords).get();
 
   Future<void> saveSyncRecord(SyncRecordsCompanion record) async {
-    await into(syncRecords).insertOnConflictUpdate(record);
+    await transaction(() async {
+      final key = record.recordKey.value;
+      await (delete(syncRecords)..where((table) => table.recordKey.equals(key)))
+          .go();
+      await into(syncRecords).insert(record);
+    });
   }
 
   Future<void> applyRemoteSyncRecord({
@@ -446,14 +469,20 @@ class AppDatabase extends _$AppDatabase {
         ReadingSessionsCompanion(
           id: Value(id),
           bookId: Value(data['bookId'] as int),
-          date: Value(data['startTime'] == null
-              ? ''
-              : (DateTime.parse(data['startTime'] as String)
-                  .toIso8601String()
-                  .substring(0, 10))),
+          date: Value(
+            data['date'] as String? ??
+                (data['startTime'] == null
+                    ? ''
+                    : DateTime.parse(data['startTime'] as String)
+                        .toIso8601String()
+                        .substring(0, 10)),
+          ),
           durationSeconds: Value(data['durationSeconds'] as int),
+          pagesRead: Value(data['pagesRead'] as int? ?? 0),
           startingPage: Value(data['startingPage'] as int?),
           endingPage: Value(data['endingPage'] as int?),
+          readingMode: Value(data['readingMode'] as String? ?? 'digital'),
+          note: Value(data['note'] as String?),
           startTime: Value(data['startTime'] == null
               ? null
               : DateTime.parse(data['startTime'] as String)),

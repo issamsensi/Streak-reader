@@ -29,6 +29,7 @@ void main() {
       createdAt: DateTime(2026, 1, 1),
     );
     const session = ReadingSession(
+      readingMode: 'digital',
       id: 1,
       bookId: 1,
       date: '2026-01-01',

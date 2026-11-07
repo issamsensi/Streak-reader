@@ -14,4 +14,7 @@ class ReadingSessions extends Table {
   IntColumn get startingPage => integer().nullable()();
   IntColumn get endingPage => integer().nullable()();
   DateTimeColumn get activeSegmentStartedAt => dateTime().nullable()();
+  TextColumn get readingMode =>
+      text().withDefault(const Constant('digital'))();
+  TextColumn get note => text().nullable()();
 }

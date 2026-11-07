@@ -19,6 +19,7 @@ void main() {
     required int pages,
   }) =>
       ReadingSession(
+        readingMode: 'digital',
         id: 0,
         bookId: bookId,
         date: date,

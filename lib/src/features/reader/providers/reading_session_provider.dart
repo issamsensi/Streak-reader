@@ -26,6 +26,7 @@ class ReadingSessionState {
   final int currentPage;
   final int bookId;
   final int elapsedSeconds;
+  final String readingMode;
 
   const ReadingSessionState({
     required this.isActive,
@@ -37,6 +38,7 @@ class ReadingSessionState {
     required this.currentPage,
     required this.bookId,
     required this.elapsedSeconds,
+    this.readingMode = 'digital',
   });
 
   factory ReadingSessionState.initial(int bookId) => ReadingSessionState(
@@ -46,6 +48,7 @@ class ReadingSessionState {
         currentPage: 0,
         bookId: bookId,
         elapsedSeconds: 0,
+        readingMode: 'digital',
       );
 
   bool get hasSession => sessionId != null;
@@ -61,6 +64,7 @@ class ReadingSessionState {
     int? currentPage,
     int? bookId,
     int? elapsedSeconds,
+    String? readingMode,
   }) {
     return ReadingSessionState(
       isActive: isActive ?? this.isActive,
@@ -74,6 +78,7 @@ class ReadingSessionState {
       currentPage: currentPage ?? this.currentPage,
       bookId: bookId ?? this.bookId,
       elapsedSeconds: elapsedSeconds ?? this.elapsedSeconds,
+      readingMode: readingMode ?? this.readingMode,
     );
   }
 }
@@ -108,7 +113,11 @@ class ReadingSessionController extends StateNotifier<ReadingSessionState> {
         DateTime.now().difference(segmentStart).inSeconds;
   }
 
-  void start(int bookId, int initialPage) {
+  void start(
+    int bookId,
+    int initialPage, {
+    String readingMode = 'digital',
+  }) {
     if (state.hasSession) return;
     final now = DateTime.now();
     _lastPersistedPage = initialPage;
@@ -121,6 +130,7 @@ class ReadingSessionController extends StateNotifier<ReadingSessionState> {
       currentPage: initialPage,
       bookId: bookId,
       elapsedSeconds: 0,
+      readingMode: readingMode,
     );
     _sessionReady = db
         .insertActiveSession(
@@ -133,6 +143,7 @@ class ReadingSessionController extends StateNotifier<ReadingSessionState> {
         startingPage: drift.Value(initialPage),
         endingPage: drift.Value(initialPage),
         activeSegmentStartedAt: drift.Value(now),
+        readingMode: drift.Value(readingMode),
       ),
     )
         .then((id) {
@@ -148,27 +159,44 @@ class ReadingSessionController extends StateNotifier<ReadingSessionState> {
     final saved = await db.getActiveSession(bookId);
     if (saved == null || saved.startTime == null) return false;
 
-    // A process restart means the previous active segment cannot be trusted:
-    // restore it paused so background time is never counted as reading.
-    final elapsed = saved.durationSeconds.clamp(0, 1 << 31);
+    final isPhysical = saved.readingMode == 'physical';
+    final elapsed = (saved.durationSeconds +
+            (isPhysical && saved.activeSegmentStartedAt != null
+                ? DateTime.now()
+                    .difference(saved.activeSegmentStartedAt!)
+                    .inSeconds
+                : 0))
+        .clamp(0, 1 << 31);
     final page = saved.endingPage ?? saved.startingPage ?? fallbackPage;
     state = ReadingSessionState(
-      isActive: false,
-      isPaused: true,
+      isActive: isPhysical && saved.activeSegmentStartedAt != null,
+      isPaused: !isPhysical || saved.activeSegmentStartedAt == null,
       sessionId: saved.id,
       startTime: saved.startTime,
+      activeSegmentStartedAt: isPhysical && saved.activeSegmentStartedAt != null
+          ? DateTime.now()
+          : null,
       pagesAtStart: saved.startingPage ?? fallbackPage,
       currentPage: page,
       bookId: bookId,
       elapsedSeconds: elapsed,
+      readingMode: saved.readingMode,
     );
     _lastPersistedPage = page;
     await db.updateSession(
       saved.id,
-      const ReadingSessionsCompanion(
-        activeSegmentStartedAt: drift.Value(null),
-      ),
+      isPhysical && saved.activeSegmentStartedAt != null
+          ? ReadingSessionsCompanion(
+              durationSeconds: drift.Value(elapsed),
+              activeSegmentStartedAt: drift.Value(DateTime.now()),
+            )
+          : const ReadingSessionsCompanion(
+              activeSegmentStartedAt: drift.Value(null),
+            ),
     );
+    if (isPhysical && saved.activeSegmentStartedAt != null) {
+      _startAutosave();
+    }
     return true;
   }
 
@@ -210,6 +238,11 @@ class ReadingSessionController extends StateNotifier<ReadingSessionState> {
     _queuePersistPage(state.bookId, page);
   }
 
+  void setPhysicalPages(int pages) {
+    if (state.readingMode != 'physical') return;
+    state = state.copyWith(currentPage: pages < 0 ? 0 : pages);
+  }
+
   void _queuePersistPage(int bookId, int page) {
     if (bookId <= 0 || page <= 0 || page == _lastPersistedPage) return;
     _lastPersistedPage = page;
@@ -241,6 +274,7 @@ class ReadingSessionController extends StateNotifier<ReadingSessionState> {
         durationSeconds: drift.Value(elapsed),
         pagesRead: drift.Value(getPagesRead()),
         endingPage: drift.Value(state.currentPage),
+        readingMode: drift.Value(state.readingMode),
         activeSegmentStartedAt: drift.Value(
           state.isActive ? state.activeSegmentStartedAt : null,
         ),
@@ -255,7 +289,7 @@ class ReadingSessionController extends StateNotifier<ReadingSessionState> {
 
   Future<void> stopAndSave() => finish();
 
-  Future<void> finish() async {
+  Future<void> finish({int? pagesRead, String? note}) async {
     if (_isFinishing) return;
     await _sessionReady;
     if (!state.hasSession) return;
@@ -267,7 +301,7 @@ class ReadingSessionController extends StateNotifier<ReadingSessionState> {
     try {
       await _persistDraft();
       await _pendingPersist;
-      if (bookId > 0 && currentPage > 0) {
+      if (state.readingMode == 'digital' && bookId > 0 && currentPage > 0) {
         await db.updateBookLastPage(bookId, currentPage);
       }
       final now = DateTime.now();
@@ -290,7 +324,9 @@ class ReadingSessionController extends StateNotifier<ReadingSessionState> {
         ReadingSessionsCompanion(
           date: drift.Value(DateFormat('yyyy-MM-dd').format(now)),
           durationSeconds: drift.Value(elapsed),
-          pagesRead: drift.Value(getPagesRead()),
+          pagesRead: drift.Value(pagesRead ?? getPagesRead()),
+          note: drift.Value(note?.trim().isEmpty == true ? null : note?.trim()),
+          readingMode: drift.Value(state.readingMode),
           endingPage: drift.Value(currentPage),
           endTime: drift.Value(now),
           activeSegmentStartedAt: const drift.Value(null),

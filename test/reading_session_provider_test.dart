@@ -106,4 +106,43 @@ void main() {
 
     expect(await db.getAllSessions(), hasLength(1));
   });
+
+  test('physical sessions persist mode, optional pages, and notes', () async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+
+    final bookId = await db.insertBook(BooksCompanion.insert(title: 'Printed'));
+    final controller = ReadingSessionController(db);
+    controller.start(bookId, 0, readingMode: 'physical');
+    await Future<void>.delayed(const Duration(milliseconds: 1100));
+    await controller.finish(pagesRead: 12, note: 'Great chapter');
+
+    final session = (await db.getSessionsForBook(bookId)).single;
+    expect(session.readingMode, 'physical');
+    expect(session.pagesRead, 12);
+    expect(session.note, 'Great chapter');
+    final book = (await db.getAllBooks()).single;
+    expect(book.lastPage, 0);
+  });
+
+  test('physical active segments continue across controller restore', () async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+
+    final bookId = await db.insertBook(BooksCompanion.insert(title: 'Printed'));
+    final first = ReadingSessionController(db);
+    first.start(bookId, 0, readingMode: 'physical');
+    await Future<void>.delayed(const Duration(milliseconds: 1100));
+    await first.persistCurrentPage();
+
+    final restored = ReadingSessionController(db);
+    expect(await restored.restore(bookId, 0), isTrue);
+    expect(restored.isActive, isTrue);
+    await Future<void>.delayed(const Duration(milliseconds: 1100));
+    await restored.finish();
+
+    final session = (await db.getSessionsForBook(bookId)).single;
+    expect(session.readingMode, 'physical');
+    expect(session.durationSeconds, greaterThanOrEqualTo(2));
+  });
 }

@@ -4,6 +4,7 @@ import 'package:streak_reader/src/domain/usecases/build_reading_calendar.dart';
 import 'package:streak_reader/src/domain/usecases/calculate_streak.dart';
 
 ReadingSession session(String date) => ReadingSession(
+      readingMode: 'digital',
       id: 1,
       bookId: 1,
       date: date,

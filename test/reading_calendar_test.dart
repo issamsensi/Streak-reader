@@ -18,6 +18,7 @@ void main() {
     int bookId = 1,
   }) =>
       ReadingSession(
+        readingMode: 'digital',
         id: 0,
         bookId: bookId,
         date: date,

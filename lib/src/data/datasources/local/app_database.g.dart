@@ -617,6 +617,19 @@ class $ReadingSessionsTable extends ReadingSessions
   late final GeneratedColumn<DateTime> activeSegmentStartedAt =
       GeneratedColumn<DateTime>('active_segment_started_at', aliasedName, true,
           type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _readingModeMeta =
+      const VerificationMeta('readingMode');
+  @override
+  late final GeneratedColumn<String> readingMode = GeneratedColumn<String>(
+      'reading_mode', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('digital'));
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+      'note', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -628,7 +641,9 @@ class $ReadingSessionsTable extends ReadingSessions
         endTime,
         startingPage,
         endingPage,
-        activeSegmentStartedAt
+        activeSegmentStartedAt,
+        readingMode,
+        note
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -693,6 +708,16 @@ class $ReadingSessionsTable extends ReadingSessions
           activeSegmentStartedAt.isAcceptableOrUnknown(
               data['active_segment_started_at']!, _activeSegmentStartedAtMeta));
     }
+    if (data.containsKey('reading_mode')) {
+      context.handle(
+          _readingModeMeta,
+          readingMode.isAcceptableOrUnknown(
+              data['reading_mode']!, _readingModeMeta));
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+          _noteMeta, note.isAcceptableOrUnknown(data['note']!, _noteMeta));
+    }
     return context;
   }
 
@@ -723,6 +748,10 @@ class $ReadingSessionsTable extends ReadingSessions
       activeSegmentStartedAt: attachedDatabase.typeMapping.read(
           DriftSqlType.dateTime,
           data['${effectivePrefix}active_segment_started_at']),
+      readingMode: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}reading_mode'])!,
+      note: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}note']),
     );
   }
 
@@ -743,6 +772,8 @@ class ReadingSession extends DataClass implements Insertable<ReadingSession> {
   final int? startingPage;
   final int? endingPage;
   final DateTime? activeSegmentStartedAt;
+  final String readingMode;
+  final String? note;
   const ReadingSession(
       {required this.id,
       required this.bookId,
@@ -753,7 +784,9 @@ class ReadingSession extends DataClass implements Insertable<ReadingSession> {
       this.endTime,
       this.startingPage,
       this.endingPage,
-      this.activeSegmentStartedAt});
+      this.activeSegmentStartedAt,
+      required this.readingMode,
+      this.note});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -777,6 +810,10 @@ class ReadingSession extends DataClass implements Insertable<ReadingSession> {
     if (!nullToAbsent || activeSegmentStartedAt != null) {
       map['active_segment_started_at'] =
           Variable<DateTime>(activeSegmentStartedAt);
+    }
+    map['reading_mode'] = Variable<String>(readingMode);
+    if (!nullToAbsent || note != null) {
+      map['note'] = Variable<String>(note);
     }
     return map;
   }
@@ -803,6 +840,8 @@ class ReadingSession extends DataClass implements Insertable<ReadingSession> {
       activeSegmentStartedAt: activeSegmentStartedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(activeSegmentStartedAt),
+      readingMode: Value(readingMode),
+      note: note == null && nullToAbsent ? const Value.absent() : Value(note),
     );
   }
 
@@ -821,6 +860,8 @@ class ReadingSession extends DataClass implements Insertable<ReadingSession> {
       endingPage: serializer.fromJson<int?>(json['endingPage']),
       activeSegmentStartedAt:
           serializer.fromJson<DateTime?>(json['activeSegmentStartedAt']),
+      readingMode: serializer.fromJson<String>(json['readingMode']),
+      note: serializer.fromJson<String?>(json['note']),
     );
   }
   @override
@@ -838,6 +879,8 @@ class ReadingSession extends DataClass implements Insertable<ReadingSession> {
       'endingPage': serializer.toJson<int?>(endingPage),
       'activeSegmentStartedAt':
           serializer.toJson<DateTime?>(activeSegmentStartedAt),
+      'readingMode': serializer.toJson<String>(readingMode),
+      'note': serializer.toJson<String?>(note),
     };
   }
 
@@ -851,7 +894,9 @@ class ReadingSession extends DataClass implements Insertable<ReadingSession> {
           Value<DateTime?> endTime = const Value.absent(),
           Value<int?> startingPage = const Value.absent(),
           Value<int?> endingPage = const Value.absent(),
-          Value<DateTime?> activeSegmentStartedAt = const Value.absent()}) =>
+          Value<DateTime?> activeSegmentStartedAt = const Value.absent(),
+          String? readingMode,
+          Value<String?> note = const Value.absent()}) =>
       ReadingSession(
         id: id ?? this.id,
         bookId: bookId ?? this.bookId,
@@ -866,6 +911,8 @@ class ReadingSession extends DataClass implements Insertable<ReadingSession> {
         activeSegmentStartedAt: activeSegmentStartedAt.present
             ? activeSegmentStartedAt.value
             : this.activeSegmentStartedAt,
+        readingMode: readingMode ?? this.readingMode,
+        note: note.present ? note.value : this.note,
       );
   ReadingSession copyWithCompanion(ReadingSessionsCompanion data) {
     return ReadingSession(
@@ -886,6 +933,9 @@ class ReadingSession extends DataClass implements Insertable<ReadingSession> {
       activeSegmentStartedAt: data.activeSegmentStartedAt.present
           ? data.activeSegmentStartedAt.value
           : this.activeSegmentStartedAt,
+      readingMode:
+          data.readingMode.present ? data.readingMode.value : this.readingMode,
+      note: data.note.present ? data.note.value : this.note,
     );
   }
 
@@ -901,14 +951,27 @@ class ReadingSession extends DataClass implements Insertable<ReadingSession> {
           ..write('endTime: $endTime, ')
           ..write('startingPage: $startingPage, ')
           ..write('endingPage: $endingPage, ')
-          ..write('activeSegmentStartedAt: $activeSegmentStartedAt')
+          ..write('activeSegmentStartedAt: $activeSegmentStartedAt, ')
+          ..write('readingMode: $readingMode, ')
+          ..write('note: $note')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, bookId, date, durationSeconds, pagesRead,
-      startTime, endTime, startingPage, endingPage, activeSegmentStartedAt);
+  int get hashCode => Object.hash(
+      id,
+      bookId,
+      date,
+      durationSeconds,
+      pagesRead,
+      startTime,
+      endTime,
+      startingPage,
+      endingPage,
+      activeSegmentStartedAt,
+      readingMode,
+      note);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -922,7 +985,9 @@ class ReadingSession extends DataClass implements Insertable<ReadingSession> {
           other.endTime == this.endTime &&
           other.startingPage == this.startingPage &&
           other.endingPage == this.endingPage &&
-          other.activeSegmentStartedAt == this.activeSegmentStartedAt);
+          other.activeSegmentStartedAt == this.activeSegmentStartedAt &&
+          other.readingMode == this.readingMode &&
+          other.note == this.note);
 }
 
 class ReadingSessionsCompanion extends UpdateCompanion<ReadingSession> {
@@ -936,6 +1001,8 @@ class ReadingSessionsCompanion extends UpdateCompanion<ReadingSession> {
   final Value<int?> startingPage;
   final Value<int?> endingPage;
   final Value<DateTime?> activeSegmentStartedAt;
+  final Value<String> readingMode;
+  final Value<String?> note;
   const ReadingSessionsCompanion({
     this.id = const Value.absent(),
     this.bookId = const Value.absent(),
@@ -947,6 +1014,8 @@ class ReadingSessionsCompanion extends UpdateCompanion<ReadingSession> {
     this.startingPage = const Value.absent(),
     this.endingPage = const Value.absent(),
     this.activeSegmentStartedAt = const Value.absent(),
+    this.readingMode = const Value.absent(),
+    this.note = const Value.absent(),
   });
   ReadingSessionsCompanion.insert({
     this.id = const Value.absent(),
@@ -959,6 +1028,8 @@ class ReadingSessionsCompanion extends UpdateCompanion<ReadingSession> {
     this.startingPage = const Value.absent(),
     this.endingPage = const Value.absent(),
     this.activeSegmentStartedAt = const Value.absent(),
+    this.readingMode = const Value.absent(),
+    this.note = const Value.absent(),
   })  : bookId = Value(bookId),
         date = Value(date),
         durationSeconds = Value(durationSeconds);
@@ -973,6 +1044,8 @@ class ReadingSessionsCompanion extends UpdateCompanion<ReadingSession> {
     Expression<int>? startingPage,
     Expression<int>? endingPage,
     Expression<DateTime>? activeSegmentStartedAt,
+    Expression<String>? readingMode,
+    Expression<String>? note,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -986,6 +1059,8 @@ class ReadingSessionsCompanion extends UpdateCompanion<ReadingSession> {
       if (endingPage != null) 'ending_page': endingPage,
       if (activeSegmentStartedAt != null)
         'active_segment_started_at': activeSegmentStartedAt,
+      if (readingMode != null) 'reading_mode': readingMode,
+      if (note != null) 'note': note,
     });
   }
 
@@ -999,7 +1074,9 @@ class ReadingSessionsCompanion extends UpdateCompanion<ReadingSession> {
       Value<DateTime?>? endTime,
       Value<int?>? startingPage,
       Value<int?>? endingPage,
-      Value<DateTime?>? activeSegmentStartedAt}) {
+      Value<DateTime?>? activeSegmentStartedAt,
+      Value<String>? readingMode,
+      Value<String?>? note}) {
     return ReadingSessionsCompanion(
       id: id ?? this.id,
       bookId: bookId ?? this.bookId,
@@ -1012,6 +1089,8 @@ class ReadingSessionsCompanion extends UpdateCompanion<ReadingSession> {
       endingPage: endingPage ?? this.endingPage,
       activeSegmentStartedAt:
           activeSegmentStartedAt ?? this.activeSegmentStartedAt,
+      readingMode: readingMode ?? this.readingMode,
+      note: note ?? this.note,
     );
   }
 
@@ -1049,6 +1128,12 @@ class ReadingSessionsCompanion extends UpdateCompanion<ReadingSession> {
       map['active_segment_started_at'] =
           Variable<DateTime>(activeSegmentStartedAt.value);
     }
+    if (readingMode.present) {
+      map['reading_mode'] = Variable<String>(readingMode.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
     return map;
   }
 
@@ -1064,7 +1149,9 @@ class ReadingSessionsCompanion extends UpdateCompanion<ReadingSession> {
           ..write('endTime: $endTime, ')
           ..write('startingPage: $startingPage, ')
           ..write('endingPage: $endingPage, ')
-          ..write('activeSegmentStartedAt: $activeSegmentStartedAt')
+          ..write('activeSegmentStartedAt: $activeSegmentStartedAt, ')
+          ..write('readingMode: $readingMode, ')
+          ..write('note: $note')
           ..write(')'))
         .toString();
   }
@@ -4101,6 +4188,8 @@ typedef $$ReadingSessionsTableCreateCompanionBuilder = ReadingSessionsCompanion
   Value<int?> startingPage,
   Value<int?> endingPage,
   Value<DateTime?> activeSegmentStartedAt,
+  Value<String> readingMode,
+  Value<String?> note,
 });
 typedef $$ReadingSessionsTableUpdateCompanionBuilder = ReadingSessionsCompanion
     Function({
@@ -4114,6 +4203,8 @@ typedef $$ReadingSessionsTableUpdateCompanionBuilder = ReadingSessionsCompanion
   Value<int?> startingPage,
   Value<int?> endingPage,
   Value<DateTime?> activeSegmentStartedAt,
+  Value<String> readingMode,
+  Value<String?> note,
 });
 
 final class $$ReadingSessionsTableReferences extends BaseReferences<
@@ -4173,6 +4264,12 @@ class $$ReadingSessionsTableFilterComposer
   ColumnFilters<DateTime> get activeSegmentStartedAt => $composableBuilder(
       column: $table.activeSegmentStartedAt,
       builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get readingMode => $composableBuilder(
+      column: $table.readingMode, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get note => $composableBuilder(
+      column: $table.note, builder: (column) => ColumnFilters(column));
 
   $$BooksTableFilterComposer get bookId {
     final $$BooksTableFilterComposer composer = $composerBuilder(
@@ -4234,6 +4331,12 @@ class $$ReadingSessionsTableOrderingComposer
       column: $table.activeSegmentStartedAt,
       builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get readingMode => $composableBuilder(
+      column: $table.readingMode, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get note => $composableBuilder(
+      column: $table.note, builder: (column) => ColumnOrderings(column));
+
   $$BooksTableOrderingComposer get bookId {
     final $$BooksTableOrderingComposer composer = $composerBuilder(
         composer: this,
@@ -4291,6 +4394,12 @@ class $$ReadingSessionsTableAnnotationComposer
   GeneratedColumn<DateTime> get activeSegmentStartedAt => $composableBuilder(
       column: $table.activeSegmentStartedAt, builder: (column) => column);
 
+  GeneratedColumn<String> get readingMode => $composableBuilder(
+      column: $table.readingMode, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
   $$BooksTableAnnotationComposer get bookId {
     final $$BooksTableAnnotationComposer composer = $composerBuilder(
         composer: this,
@@ -4346,6 +4455,8 @@ class $$ReadingSessionsTableTableManager extends RootTableManager<
             Value<int?> startingPage = const Value.absent(),
             Value<int?> endingPage = const Value.absent(),
             Value<DateTime?> activeSegmentStartedAt = const Value.absent(),
+            Value<String> readingMode = const Value.absent(),
+            Value<String?> note = const Value.absent(),
           }) =>
               ReadingSessionsCompanion(
             id: id,
@@ -4358,6 +4469,8 @@ class $$ReadingSessionsTableTableManager extends RootTableManager<
             startingPage: startingPage,
             endingPage: endingPage,
             activeSegmentStartedAt: activeSegmentStartedAt,
+            readingMode: readingMode,
+            note: note,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
@@ -4370,6 +4483,8 @@ class $$ReadingSessionsTableTableManager extends RootTableManager<
             Value<int?> startingPage = const Value.absent(),
             Value<int?> endingPage = const Value.absent(),
             Value<DateTime?> activeSegmentStartedAt = const Value.absent(),
+            Value<String> readingMode = const Value.absent(),
+            Value<String?> note = const Value.absent(),
           }) =>
               ReadingSessionsCompanion.insert(
             id: id,
@@ -4382,6 +4497,8 @@ class $$ReadingSessionsTableTableManager extends RootTableManager<
             startingPage: startingPage,
             endingPage: endingPage,
             activeSegmentStartedAt: activeSegmentStartedAt,
+            readingMode: readingMode,
+            note: note,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) => (

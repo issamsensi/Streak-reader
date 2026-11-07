@@ -15,6 +15,7 @@ import '../../../domain/entities/reading_status.dart';
 import '../../calendar/presentation/reading_calendar_screen.dart';
 import '../../daily_goal/presentation/daily_goal_card.dart';
 import '../../reader/presentation/pdf_reader_screen.dart';
+import '../../reader/presentation/physical_reader_screen.dart';
 import '../../settings/presentation/settings_screen.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../../stats/presentation/stats_screen.dart';
@@ -665,6 +666,16 @@ class _BooksListScreenState extends ConsumerState<BooksListScreen> {
               return _BookCard(
                 book: book,
                 onTap: () => _openBook(context, ref, book),
+                onPhysicalReading: () => Navigator.of(context)
+                    .push(
+                      MaterialPageRoute(
+                        builder: (_) => PhysicalReaderScreen(
+                          bookId: book.id,
+                          bookTitle: book.title,
+                        ),
+                      ),
+                    )
+                    .then((_) => ref.invalidate(booksListProvider)),
                 onEdit: () => _showEditDialog(context, book),
                 onAttachPdf: () => _attachPdf(context, ref, book),
                 onSetStatus: (status) => _setStatus(context, ref, book, status),
@@ -692,6 +703,7 @@ class _BooksListScreenState extends ConsumerState<BooksListScreen> {
 class _BookCard extends StatelessWidget {
   final Book book;
   final VoidCallback onTap;
+  final VoidCallback onPhysicalReading;
   final VoidCallback onEdit;
   final VoidCallback onAttachPdf;
   final ValueChanged<String> onSetStatus;
@@ -701,6 +713,7 @@ class _BookCard extends StatelessWidget {
   const _BookCard({
     required this.book,
     required this.onTap,
+    required this.onPhysicalReading,
     required this.onEdit,
     required this.onAttachPdf,
     required this.onSetStatus,
@@ -824,6 +837,8 @@ class _BookCard extends StatelessWidget {
                 onSelected: (value) {
                   if (value == 'edit') {
                     onEdit();
+                  } else if (value == 'physical_reading') {
+                    onPhysicalReading();
                   } else if (value == 'attach_pdf') {
                     onAttachPdf();
                   } else if (value.startsWith('status:')) {
@@ -841,6 +856,20 @@ class _BookCard extends StatelessWidget {
                   }
                 },
                 itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'physical_reading',
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.menu_book_outlined,
+                          size: 18,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 10),
+                        const Flexible(child: Text('Physical Reading')),
+                      ],
+                    ),
+                  ),
                   PopupMenuItem(
                     value: 'edit',
                     child: Row(
