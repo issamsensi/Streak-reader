@@ -7,7 +7,9 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/streak_banner.dart';
 import '../../../domain/entities/reading_statistics.dart';
+import '../../../domain/entities/reading_insight.dart';
 import '../../../domain/usecases/calculate_streak.dart';
+import '../../../domain/usecases/generate_reading_insights.dart';
 import '../../monthly_goal/presentation/monthly_progress_dashboard.dart';
 import '../../achievements/presentation/achievements_screen.dart';
 import '../providers/stats_provider.dart';
@@ -61,6 +63,13 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                 insights: insights,
               ),
               const SizedBox(height: 20),
+              _ReadingInsightsCard(
+                insights: const GenerateReadingInsights()(
+                  statistics: insights,
+                  now: DateTime.now(),
+                ),
+              ),
+              const SizedBox(height: 20),
               const MonthlyProgressDashboard(),
               const SizedBox(height: 20),
               Text(l10n.readingActivity, style: theme.textTheme.titleMedium),
@@ -87,6 +96,72 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+class _ReadingInsightsCard extends StatelessWidget {
+  final ReadingInsights insights;
+
+  const _ReadingInsightsCard({required this.insights});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.auto_awesome_rounded, color: context.palette.gold),
+                const SizedBox(width: 8),
+                Text('Reading insights', style: theme.textTheme.titleMedium),
+              ],
+            ),
+            const SizedBox(height: 12),
+            for (final insight in insights.items)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      insight.tone == InsightTone.actionable
+                          ? Icons.lightbulb_outline_rounded
+                          : Icons.insights_rounded,
+                      size: 18,
+                      color: insight.tone == InsightTone.positive
+                          ? context.palette.success
+                          : theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(insight.title,
+                              style: theme.textTheme.labelLarge),
+                          const SizedBox(height: 2),
+                          Text(insight.detail,
+                              style: theme.textTheme.bodySmall),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            Text(
+              'Calculated from completed sessions, recorded page progress, and the last seven days of activity.',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
