@@ -436,4 +436,76 @@ class AppLocalizationsFr extends AppLocalizations {
   String noteUpdatedAt(String date) {
     return 'Modifiée le $date';
   }
+
+  @override
+  String get readingJournal => 'Journal de lecture';
+
+  @override
+  String get newJournalEntry => 'Nouvelle entrée';
+
+  @override
+  String get editJournalEntry => 'Modifier l\'entrée';
+
+  @override
+  String get writeReflection => 'Écrire une réflexion';
+
+  @override
+  String get searchJournal => 'Rechercher dans le journal';
+
+  @override
+  String get allBooks => 'Tous les livres';
+
+  @override
+  String get emptyJournal => 'Vos réflexions de lecture apparaîtront ici.';
+
+  @override
+  String get journalTitle => 'Titre';
+
+  @override
+  String get journalTitleHint => 'Donnez un titre à cette réflexion';
+
+  @override
+  String get associatedBook => 'Livre associé';
+
+  @override
+  String get noAssociatedBook => 'Aucun livre associé';
+
+  @override
+  String get pageReferenceOptional => 'Référence de page (facultatif)';
+
+  @override
+  String get pageReferenceHint => 'Numéro de page';
+
+  @override
+  String get reflection => 'Réflexion';
+
+  @override
+  String get reflectionHint =>
+      'Prenez un moment calme pour écrire sur votre lecture...';
+
+  @override
+  String get journalPrompts => 'Questions facultatives';
+
+  @override
+  String get promptLearned => 'Qu\'avez-vous appris aujourd\'hui ?';
+
+  @override
+  String get promptIdea => 'Quelle idée vous a le plus intéressé ?';
+
+  @override
+  String get promptPassage => 'Quel passage aimeriez-vous retenir ?';
+
+  @override
+  String get promptFeeling =>
+      'Comment cette lecture vous a-t-elle fait sentir ?';
+
+  @override
+  String get untitledJournalEntry => 'Réflexion sans titre';
+
+  @override
+  String get deleteJournalEntry => 'Supprimer l\'entrée ?';
+
+  @override
+  String get deleteJournalEntryBody =>
+      'Cette réflexion sera définitivement supprimée.';
 }

@@ -432,4 +432,75 @@ class AppLocalizationsEn extends AppLocalizations {
   String noteUpdatedAt(String date) {
     return 'Updated $date';
   }
+
+  @override
+  String get readingJournal => 'Reading journal';
+
+  @override
+  String get newJournalEntry => 'New journal entry';
+
+  @override
+  String get editJournalEntry => 'Edit journal entry';
+
+  @override
+  String get writeReflection => 'Write reflection';
+
+  @override
+  String get searchJournal => 'Search journal';
+
+  @override
+  String get allBooks => 'All books';
+
+  @override
+  String get emptyJournal => 'Your reading reflections will appear here.';
+
+  @override
+  String get journalTitle => 'Title';
+
+  @override
+  String get journalTitleHint => 'Give this reflection a title';
+
+  @override
+  String get associatedBook => 'Associated book';
+
+  @override
+  String get noAssociatedBook => 'No associated book';
+
+  @override
+  String get pageReferenceOptional => 'Page reference (optional)';
+
+  @override
+  String get pageReferenceHint => 'Page number';
+
+  @override
+  String get reflection => 'Reflection';
+
+  @override
+  String get reflectionHint =>
+      'Take a quiet moment to write about your reading...';
+
+  @override
+  String get journalPrompts => 'Optional prompts';
+
+  @override
+  String get promptLearned => 'What did you learn today?';
+
+  @override
+  String get promptIdea => 'What idea interested you most?';
+
+  @override
+  String get promptPassage => 'What passage would you like to remember?';
+
+  @override
+  String get promptFeeling => 'How did this reading make you feel?';
+
+  @override
+  String get untitledJournalEntry => 'Untitled reflection';
+
+  @override
+  String get deleteJournalEntry => 'Delete journal entry?';
+
+  @override
+  String get deleteJournalEntryBody =>
+      'This reflection will be permanently deleted.';
 }

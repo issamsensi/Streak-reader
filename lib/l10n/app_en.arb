@@ -205,4 +205,27 @@
       "date": {"type": "String"}
     }
   }
+  ,"readingJournal": "Reading journal"
+    ,"newJournalEntry": "New journal entry"
+    ,"editJournalEntry": "Edit journal entry"
+    ,"writeReflection": "Write reflection"
+    ,"searchJournal": "Search journal"
+    ,"allBooks": "All books"
+    ,"emptyJournal": "Your reading reflections will appear here."
+    ,"journalTitle": "Title"
+    ,"journalTitleHint": "Give this reflection a title"
+    ,"associatedBook": "Associated book"
+    ,"noAssociatedBook": "No associated book"
+    ,"pageReferenceOptional": "Page reference (optional)"
+    ,"pageReferenceHint": "Page number"
+    ,"reflection": "Reflection"
+    ,"reflectionHint": "Take a quiet moment to write about your reading..."
+    ,"journalPrompts": "Optional prompts"
+    ,"promptLearned": "What did you learn today?"
+    ,"promptIdea": "What idea interested you most?"
+    ,"promptPassage": "What passage would you like to remember?"
+    ,"promptFeeling": "How did this reading make you feel?"
+    ,"untitledJournalEntry": "Untitled reflection"
+    ,"deleteJournalEntry": "Delete journal entry?"
+  ,"deleteJournalEntryBody": "This reflection will be permanently deleted."
 }

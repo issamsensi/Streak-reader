@@ -143,4 +143,27 @@
       "date": {"type": "String"}
     }
   }
+  ,"readingJournal": "Journal de lecture"
+    ,"newJournalEntry": "Nouvelle entrée"
+    ,"editJournalEntry": "Modifier l'entrée"
+    ,"writeReflection": "Écrire une réflexion"
+    ,"searchJournal": "Rechercher dans le journal"
+    ,"allBooks": "Tous les livres"
+    ,"emptyJournal": "Vos réflexions de lecture apparaîtront ici."
+    ,"journalTitle": "Titre"
+    ,"journalTitleHint": "Donnez un titre à cette réflexion"
+    ,"associatedBook": "Livre associé"
+    ,"noAssociatedBook": "Aucun livre associé"
+    ,"pageReferenceOptional": "Référence de page (facultatif)"
+    ,"pageReferenceHint": "Numéro de page"
+    ,"reflection": "Réflexion"
+    ,"reflectionHint": "Prenez un moment calme pour écrire sur votre lecture..."
+    ,"journalPrompts": "Questions facultatives"
+    ,"promptLearned": "Qu'avez-vous appris aujourd'hui ?"
+    ,"promptIdea": "Quelle idée vous a le plus intéressé ?"
+    ,"promptPassage": "Quel passage aimeriez-vous retenir ?"
+    ,"promptFeeling": "Comment cette lecture vous a-t-elle fait sentir ?"
+    ,"untitledJournalEntry": "Réflexion sans titre"
+    ,"deleteJournalEntry": "Supprimer l'entrée ?"
+  ,"deleteJournalEntryBody": "Cette réflexion sera définitivement supprimée."
 }

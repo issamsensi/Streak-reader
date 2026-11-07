@@ -891,6 +891,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Updated {date}'**
   String noteUpdatedAt(String date);
+
+  /// No description provided for @readingJournal.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading journal'**
+  String get readingJournal;
+
+  /// No description provided for @newJournalEntry.
+  ///
+  /// In en, this message translates to:
+  /// **'New journal entry'**
+  String get newJournalEntry;
+
+  /// No description provided for @editJournalEntry.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit journal entry'**
+  String get editJournalEntry;
+
+  /// No description provided for @writeReflection.
+  ///
+  /// In en, this message translates to:
+  /// **'Write reflection'**
+  String get writeReflection;
+
+  /// No description provided for @searchJournal.
+  ///
+  /// In en, this message translates to:
+  /// **'Search journal'**
+  String get searchJournal;
+
+  /// No description provided for @allBooks.
+  ///
+  /// In en, this message translates to:
+  /// **'All books'**
+  String get allBooks;
+
+  /// No description provided for @emptyJournal.
+  ///
+  /// In en, this message translates to:
+  /// **'Your reading reflections will appear here.'**
+  String get emptyJournal;
+
+  /// No description provided for @journalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get journalTitle;
+
+  /// No description provided for @journalTitleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Give this reflection a title'**
+  String get journalTitleHint;
+
+  /// No description provided for @associatedBook.
+  ///
+  /// In en, this message translates to:
+  /// **'Associated book'**
+  String get associatedBook;
+
+  /// No description provided for @noAssociatedBook.
+  ///
+  /// In en, this message translates to:
+  /// **'No associated book'**
+  String get noAssociatedBook;
+
+  /// No description provided for @pageReferenceOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Page reference (optional)'**
+  String get pageReferenceOptional;
+
+  /// No description provided for @pageReferenceHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Page number'**
+  String get pageReferenceHint;
+
+  /// No description provided for @reflection.
+  ///
+  /// In en, this message translates to:
+  /// **'Reflection'**
+  String get reflection;
+
+  /// No description provided for @reflectionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a quiet moment to write about your reading...'**
+  String get reflectionHint;
+
+  /// No description provided for @journalPrompts.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional prompts'**
+  String get journalPrompts;
+
+  /// No description provided for @promptLearned.
+  ///
+  /// In en, this message translates to:
+  /// **'What did you learn today?'**
+  String get promptLearned;
+
+  /// No description provided for @promptIdea.
+  ///
+  /// In en, this message translates to:
+  /// **'What idea interested you most?'**
+  String get promptIdea;
+
+  /// No description provided for @promptPassage.
+  ///
+  /// In en, this message translates to:
+  /// **'What passage would you like to remember?'**
+  String get promptPassage;
+
+  /// No description provided for @promptFeeling.
+  ///
+  /// In en, this message translates to:
+  /// **'How did this reading make you feel?'**
+  String get promptFeeling;
+
+  /// No description provided for @untitledJournalEntry.
+  ///
+  /// In en, this message translates to:
+  /// **'Untitled reflection'**
+  String get untitledJournalEntry;
+
+  /// No description provided for @deleteJournalEntry.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete journal entry?'**
+  String get deleteJournalEntry;
+
+  /// No description provided for @deleteJournalEntryBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This reflection will be permanently deleted.'**
+  String get deleteJournalEntryBody;
 }
 
 class _AppLocalizationsDelegate

@@ -431,4 +431,73 @@ class AppLocalizationsAr extends AppLocalizations {
   String noteUpdatedAt(String date) {
     return 'آخر تعديل: $date';
   }
+
+  @override
+  String get readingJournal => 'يوميات القراءة';
+
+  @override
+  String get newJournalEntry => 'إدخال يوميات جديد';
+
+  @override
+  String get editJournalEntry => 'تعديل إدخال اليوميات';
+
+  @override
+  String get writeReflection => 'اكتب تأملك';
+
+  @override
+  String get searchJournal => 'البحث في اليوميات';
+
+  @override
+  String get allBooks => 'كل الكتب';
+
+  @override
+  String get emptyJournal => 'ستظهر تأملاتك القرائية هنا.';
+
+  @override
+  String get journalTitle => 'العنوان';
+
+  @override
+  String get journalTitleHint => 'أضف عنواناً لهذا التأمل';
+
+  @override
+  String get associatedBook => 'الكتاب المرتبط';
+
+  @override
+  String get noAssociatedBook => 'بدون كتاب مرتبط';
+
+  @override
+  String get pageReferenceOptional => 'مرجع الصفحة (اختياري)';
+
+  @override
+  String get pageReferenceHint => 'رقم الصفحة';
+
+  @override
+  String get reflection => 'التأمل';
+
+  @override
+  String get reflectionHint => 'خذ لحظة هادئة واكتب عن قراءتك...';
+
+  @override
+  String get journalPrompts => 'أسئلة اختيارية';
+
+  @override
+  String get promptLearned => 'ماذا تعلمت اليوم؟';
+
+  @override
+  String get promptIdea => 'ما الفكرة التي أثارت اهتمامك؟';
+
+  @override
+  String get promptPassage => 'ما المقطع الذي تود تذكره؟';
+
+  @override
+  String get promptFeeling => 'كيف جعلتك هذه القراءة تشعر؟';
+
+  @override
+  String get untitledJournalEntry => 'تأمل بلا عنوان';
+
+  @override
+  String get deleteJournalEntry => 'حذف إدخال اليوميات؟';
+
+  @override
+  String get deleteJournalEntryBody => 'سيتم حذف هذا التأمل نهائياً.';
 }

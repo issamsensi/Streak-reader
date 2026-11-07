@@ -31,3 +31,13 @@ class Notes extends Table {
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get modifiedAt => dateTime().withDefault(currentDateAndTime)();
 }
+
+class JournalEntries extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get bookId => integer().nullable()();
+  IntColumn get pageNumber => integer().nullable()();
+  TextColumn get title => text()();
+  TextColumn get reflection => text()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get modifiedAt => dateTime().withDefault(currentDateAndTime)();
+}

@@ -7,14 +7,23 @@ import 'tables/reading_sessions_table.dart';
 
 part 'app_database.g.dart';
 
-@DriftDatabase(tables: [Books, ReadingSessions, Bookmarks, Highlights, Notes])
+@DriftDatabase(
+  tables: [
+    Books,
+    ReadingSessions,
+    Bookmarks,
+    Highlights,
+    Notes,
+    JournalEntries
+  ],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(connection.openConnection());
 
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -37,6 +46,9 @@ class AppDatabase extends _$AppDatabase {
           if (from < 4) {
             await m.createTable(notes);
           }
+          if (from < 5) {
+            await m.createTable(journalEntries);
+          }
         },
       );
 
@@ -57,6 +69,8 @@ class AppDatabase extends _$AppDatabase {
       await (delete(bookmarks)..where((tbl) => tbl.bookId.equals(id))).go();
       await (delete(highlights)..where((tbl) => tbl.bookId.equals(id))).go();
       await (delete(notes)..where((tbl) => tbl.bookId.equals(id))).go();
+      await (delete(journalEntries)..where((tbl) => tbl.bookId.equals(id)))
+          .go();
       return (delete(books)..where((tbl) => tbl.id.equals(id))).go();
     });
   }
@@ -190,4 +204,39 @@ class AppDatabase extends _$AppDatabase {
 
   Future<int> deleteNote(int id) =>
       (delete(notes)..where((tbl) => tbl.id.equals(id))).go();
+
+  // Reading journal
+  Future<List<JournalEntry>> getJournalEntries({
+    int? bookId,
+    String query = '',
+  }) {
+    final normalizedQuery = query.trim();
+    final statement = select(journalEntries)
+      ..orderBy([(tbl) => OrderingTerm.desc(tbl.createdAt)]);
+    if (bookId != null) {
+      statement.where((tbl) => tbl.bookId.equals(bookId));
+    }
+    if (normalizedQuery.isNotEmpty) {
+      statement.where(
+        (tbl) =>
+            tbl.title.like('%$normalizedQuery%') |
+            tbl.reflection.like('%$normalizedQuery%'),
+      );
+    }
+    return statement.get();
+  }
+
+  Future<int> addJournalEntry(JournalEntriesCompanion entry) =>
+      into(journalEntries).insert(entry);
+
+  Future<bool> updateJournalEntry(
+    int id,
+    JournalEntriesCompanion entry,
+  ) =>
+      (update(journalEntries)..where((tbl) => tbl.id.equals(id)))
+          .write(entry)
+          .then((count) => count > 0);
+
+  Future<int> deleteJournalEntry(int id) =>
+      (delete(journalEntries)..where((tbl) => tbl.id.equals(id))).go();
 }

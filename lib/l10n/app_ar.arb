@@ -143,4 +143,27 @@
       "date": {"type": "String"}
     }
   }
+  ,"readingJournal": "يوميات القراءة"
+    ,"newJournalEntry": "إدخال يوميات جديد"
+    ,"editJournalEntry": "تعديل إدخال اليوميات"
+    ,"writeReflection": "اكتب تأملك"
+    ,"searchJournal": "البحث في اليوميات"
+    ,"allBooks": "كل الكتب"
+    ,"emptyJournal": "ستظهر تأملاتك القرائية هنا."
+    ,"journalTitle": "العنوان"
+    ,"journalTitleHint": "أضف عنواناً لهذا التأمل"
+    ,"associatedBook": "الكتاب المرتبط"
+    ,"noAssociatedBook": "بدون كتاب مرتبط"
+    ,"pageReferenceOptional": "مرجع الصفحة (اختياري)"
+    ,"pageReferenceHint": "رقم الصفحة"
+    ,"reflection": "التأمل"
+    ,"reflectionHint": "خذ لحظة هادئة واكتب عن قراءتك..."
+    ,"journalPrompts": "أسئلة اختيارية"
+    ,"promptLearned": "ماذا تعلمت اليوم؟"
+    ,"promptIdea": "ما الفكرة التي أثارت اهتمامك؟"
+    ,"promptPassage": "ما المقطع الذي تود تذكره؟"
+    ,"promptFeeling": "كيف جعلتك هذه القراءة تشعر؟"
+    ,"untitledJournalEntry": "تأمل بلا عنوان"
+    ,"deleteJournalEntry": "حذف إدخال اليوميات؟"
+  ,"deleteJournalEntryBody": "سيتم حذف هذا التأمل نهائياً."
 }

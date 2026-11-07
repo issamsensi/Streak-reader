@@ -15,6 +15,7 @@ import '../../settings/presentation/settings_screen.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../../stats/presentation/stats_screen.dart';
 import '../../stats/providers/stats_provider.dart';
+import '../../journal/presentation/reading_journal_screen.dart';
 import '../providers/books_providers.dart';
 import 'widgets/add_book_sheet.dart';
 import 'widgets/edit_title_dialog.dart';
@@ -251,6 +252,18 @@ class BooksListScreen extends ConsumerWidget {
             },
             icon: const Icon(Icons.bar_chart_rounded),
             tooltip: l10n.statistics,
+          ),
+          const SizedBox(width: 8),
+          IconButton.filledTonal(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const ReadingJournalScreen(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.auto_stories_rounded),
+            tooltip: l10n.readingJournal,
           ),
           const SizedBox(width: 8),
           IconButton.filledTonal(
