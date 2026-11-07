@@ -7,9 +7,11 @@ import 'src/features/books/presentation/books_list_screen.dart';
 import 'src/features/settings/providers/settings_provider.dart';
 import 'src/core/notifications/reading_reminder_service.dart';
 import 'src/features/daily_goal/providers/daily_goal_provider.dart';
+import 'src/core/sync/sync_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await SyncService.initialize();
   await ReadingReminderService.instance.initialize();
   runApp(const ProviderScope(child: MyApp()));
 }

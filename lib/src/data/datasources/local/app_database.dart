@@ -1,9 +1,11 @@
 import 'package:drift/drift.dart';
+import 'dart:convert';
 
 import 'connection/connection.dart' as connection;
 import 'tables/books_table.dart';
 import 'tables/annotations_tables.dart';
 import 'tables/reading_sessions_table.dart';
+import 'tables/sync_table.dart';
 
 part 'app_database.g.dart';
 
@@ -18,6 +20,7 @@ part 'app_database.g.dart';
     Collections,
     BookCollections,
     AchievementUnlocks,
+    SyncRecords,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -26,7 +29,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -66,13 +69,25 @@ class AppDatabase extends _$AppDatabase {
           if (from < 7) {
             await m.createTable(achievementUnlocks);
           }
+          if (from < 8) {
+            await m.createTable(syncRecords);
+          }
         },
       );
 
   // Books
   Future<List<Book>> getAllBooks() => select(books).get();
-  Future<int> insertBook(BooksCompanion book) => into(books).insert(book);
-  Future<bool> updateBook(BooksCompanion book) => update(books).replace(book);
+  Future<int> insertBook(BooksCompanion book) async {
+    final id = await into(books).insert(book);
+    await _queueBook(id);
+    return id;
+  }
+
+  Future<bool> updateBook(BooksCompanion book) async {
+    final updated = await update(books).replace(book);
+    if (updated) await _queueBook(book.id.value);
+    return updated;
+  }
 
   /// Deletes a book and its reading sessions in one transaction so streak and
   /// page totals never keep counting sessions from a removed book.
@@ -99,8 +114,12 @@ class AppDatabase extends _$AppDatabase {
           .write(BooksCompanion(lastPage: Value(lastPage)));
 
   // Reading sessions
-  Future<int> insertSession(ReadingSessionsCompanion session) =>
-      into(readingSessions).insert(session);
+  Future<int> insertSession(ReadingSessionsCompanion session) async {
+    final id = await into(readingSessions).insert(session);
+    await _queueSession(id);
+    return id;
+  }
+
   Future<List<ReadingSession>> getAllSessions() => (select(readingSessions)
         ..where((tbl) => tbl.startTime.isNull() | tbl.endTime.isNotNull()))
       .get();
@@ -320,6 +339,48 @@ class AppDatabase extends _$AppDatabase {
     return rows.length;
   }
 
+  Future<void> _queueBook(int id) async {
+    final book = await (select(books)..where((table) => table.id.equals(id)))
+        .getSingleOrNull();
+    if (book == null) return;
+    await enqueueSyncRecord(
+      recordKey: 'book:$id',
+      entityType: 'book',
+      payload: jsonEncode({
+        'id': book.id,
+        'title': book.title,
+        'author': book.author,
+        'totalPages': book.totalPages,
+        'lastPage': book.lastPage,
+        'isCompleted': book.isCompleted,
+        'readingStatus': book.readingStatus,
+        'createdAt': book.createdAt.toUtc().toIso8601String(),
+      }),
+      updatedAt: DateTime.now().toUtc(),
+    );
+  }
+
+  Future<void> _queueSession(int id) async {
+    final session = await (select(readingSessions)
+          ..where((table) => table.id.equals(id)))
+        .getSingleOrNull();
+    if (session == null) return;
+    await enqueueSyncRecord(
+      recordKey: 'session:$id',
+      entityType: 'reading_session',
+      payload: jsonEncode({
+        'id': session.id,
+        'bookId': session.bookId,
+        'startTime': session.startTime?.toUtc().toIso8601String(),
+        'endTime': session.endTime?.toUtc().toIso8601String(),
+        'durationSeconds': session.durationSeconds,
+        'startingPage': session.startingPage,
+        'endingPage': session.endingPage,
+      }),
+      updatedAt: DateTime.now().toUtc(),
+    );
+  }
+
   Future<List<AchievementUnlock>> getAchievementUnlocks() =>
       select(achievementUnlocks).get();
 
@@ -327,7 +388,8 @@ class AppDatabase extends _$AppDatabase {
     AchievementUnlocksCompanion unlock,
   ) async {
     final existing = await (select(achievementUnlocks)
-          ..where((tbl) => tbl.achievementId.equals(unlock.achievementId.value)))
+          ..where(
+              (tbl) => tbl.achievementId.equals(unlock.achievementId.value)))
         .getSingleOrNull();
     if (existing != null) return false;
     final inserted = await into(achievementUnlocks).insert(
@@ -335,4 +397,95 @@ class AppDatabase extends _$AppDatabase {
     );
     return inserted > 0;
   }
+
+  Future<List<SyncRecord>> getPendingSyncRecords() =>
+      (select(syncRecords)..where((table) => table.pending.equals(true))).get();
+
+  Future<List<SyncRecord>> getAllSyncRecords() => select(syncRecords).get();
+
+  Future<void> saveSyncRecord(SyncRecordsCompanion record) async {
+    await into(syncRecords).insertOnConflictUpdate(record);
+  }
+
+  Future<void> applyRemoteSyncRecord({
+    required String entityType,
+    required String payload,
+  }) async {
+    final data = jsonDecode(payload) as Map<String, dynamic>;
+    if (entityType == 'book') {
+      final id = data['id'] as int;
+      final existing = await (select(books)
+            ..where((table) => table.id.equals(id)))
+          .getSingleOrNull();
+      final companion = BooksCompanion(
+        id: Value(id),
+        title: Value(data['title'] as String),
+        author: Value(data['author'] as String?),
+        totalPages: Value(data['totalPages'] as int?),
+        lastPage: Value(data['lastPage'] as int? ?? 0),
+        isCompleted: Value(data['isCompleted'] as bool? ?? false),
+        readingStatus:
+            Value(data['readingStatus'] as String? ?? 'want_to_read'),
+        createdAt: Value(DateTime.parse(data['createdAt'] as String)),
+        filePath:
+            existing == null ? const Value.absent() : Value(existing.filePath),
+        fileName:
+            existing == null ? const Value.absent() : Value(existing.fileName),
+        fileSize:
+            existing == null ? const Value.absent() : Value(existing.fileSize),
+      );
+      if (existing == null) {
+        await into(books).insert(companion);
+      } else {
+        await (update(books)..where((table) => table.id.equals(id)))
+            .write(companion);
+      }
+    } else if (entityType == 'reading_session') {
+      final id = data['id'] as int;
+      await into(readingSessions).insertOnConflictUpdate(
+        ReadingSessionsCompanion(
+          id: Value(id),
+          bookId: Value(data['bookId'] as int),
+          date: Value(data['startTime'] == null
+              ? ''
+              : (DateTime.parse(data['startTime'] as String)
+                  .toIso8601String()
+                  .substring(0, 10))),
+          durationSeconds: Value(data['durationSeconds'] as int),
+          startingPage: Value(data['startingPage'] as int?),
+          endingPage: Value(data['endingPage'] as int?),
+          startTime: Value(data['startTime'] == null
+              ? null
+              : DateTime.parse(data['startTime'] as String)),
+          endTime: Value(data['endTime'] == null
+              ? null
+              : DateTime.parse(data['endTime'] as String)),
+        ),
+      );
+    }
+  }
+
+  Future<void> markSyncRecordsUploaded(Iterable<int> ids) async {
+    if (ids.isEmpty) return;
+    await (update(syncRecords)..where((table) => table.id.isIn(ids))).write(
+      const SyncRecordsCompanion(pending: Value(false)),
+    );
+  }
+
+  Future<void> enqueueSyncRecord({
+    required String recordKey,
+    required String entityType,
+    required String payload,
+    required DateTime updatedAt,
+    bool deleted = false,
+  }) =>
+      saveSyncRecord(
+        SyncRecordsCompanion.insert(
+          recordKey: recordKey,
+          entityType: entityType,
+          payload: payload,
+          updatedAt: updatedAt,
+          deleted: Value(deleted),
+        ),
+      );
 }

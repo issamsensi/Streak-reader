@@ -222,7 +222,7 @@ class Book extends DataClass implements Insertable<Book> {
       this.fileSize,
       required this.lastPage,
       required this.isCompleted,
-      this.readingStatus = 'want_to_read',
+      required this.readingStatus,
       required this.createdAt});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -3324,6 +3324,387 @@ class AchievementUnlocksCompanion extends UpdateCompanion<AchievementUnlock> {
   }
 }
 
+class $SyncRecordsTable extends SyncRecords
+    with TableInfo<$SyncRecordsTable, SyncRecord> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SyncRecordsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+      'id', aliasedName, false,
+      hasAutoIncrement: true,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  static const VerificationMeta _recordKeyMeta =
+      const VerificationMeta('recordKey');
+  @override
+  late final GeneratedColumn<String> recordKey = GeneratedColumn<String>(
+      'record_key', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: true,
+      defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'));
+  static const VerificationMeta _entityTypeMeta =
+      const VerificationMeta('entityType');
+  @override
+  late final GeneratedColumn<String> entityType = GeneratedColumn<String>(
+      'entity_type', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _payloadMeta =
+      const VerificationMeta('payload');
+  @override
+  late final GeneratedColumn<String> payload = GeneratedColumn<String>(
+      'payload', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _deletedMeta =
+      const VerificationMeta('deleted');
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+      'deleted', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("deleted" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _pendingMeta =
+      const VerificationMeta('pending');
+  @override
+  late final GeneratedColumn<bool> pending = GeneratedColumn<bool>(
+      'pending', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("pending" IN (0, 1))'),
+      defaultValue: const Constant(true));
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, recordKey, entityType, payload, updatedAt, deleted, pending];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'sync_records';
+  @override
+  VerificationContext validateIntegrity(Insertable<SyncRecord> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('record_key')) {
+      context.handle(_recordKeyMeta,
+          recordKey.isAcceptableOrUnknown(data['record_key']!, _recordKeyMeta));
+    } else if (isInserting) {
+      context.missing(_recordKeyMeta);
+    }
+    if (data.containsKey('entity_type')) {
+      context.handle(
+          _entityTypeMeta,
+          entityType.isAcceptableOrUnknown(
+              data['entity_type']!, _entityTypeMeta));
+    } else if (isInserting) {
+      context.missing(_entityTypeMeta);
+    }
+    if (data.containsKey('payload')) {
+      context.handle(_payloadMeta,
+          payload.isAcceptableOrUnknown(data['payload']!, _payloadMeta));
+    } else if (isInserting) {
+      context.missing(_payloadMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(_deletedMeta,
+          deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta));
+    }
+    if (data.containsKey('pending')) {
+      context.handle(_pendingMeta,
+          pending.isAcceptableOrUnknown(data['pending']!, _pendingMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SyncRecord map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SyncRecord(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      recordKey: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}record_key'])!,
+      entityType: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}entity_type'])!,
+      payload: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}payload'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+      deleted: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}deleted'])!,
+      pending: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}pending'])!,
+    );
+  }
+
+  @override
+  $SyncRecordsTable createAlias(String alias) {
+    return $SyncRecordsTable(attachedDatabase, alias);
+  }
+}
+
+class SyncRecord extends DataClass implements Insertable<SyncRecord> {
+  final int id;
+  final String recordKey;
+  final String entityType;
+  final String payload;
+  final DateTime updatedAt;
+  final bool deleted;
+  final bool pending;
+  const SyncRecord(
+      {required this.id,
+      required this.recordKey,
+      required this.entityType,
+      required this.payload,
+      required this.updatedAt,
+      required this.deleted,
+      required this.pending});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['record_key'] = Variable<String>(recordKey);
+    map['entity_type'] = Variable<String>(entityType);
+    map['payload'] = Variable<String>(payload);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['deleted'] = Variable<bool>(deleted);
+    map['pending'] = Variable<bool>(pending);
+    return map;
+  }
+
+  SyncRecordsCompanion toCompanion(bool nullToAbsent) {
+    return SyncRecordsCompanion(
+      id: Value(id),
+      recordKey: Value(recordKey),
+      entityType: Value(entityType),
+      payload: Value(payload),
+      updatedAt: Value(updatedAt),
+      deleted: Value(deleted),
+      pending: Value(pending),
+    );
+  }
+
+  factory SyncRecord.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SyncRecord(
+      id: serializer.fromJson<int>(json['id']),
+      recordKey: serializer.fromJson<String>(json['recordKey']),
+      entityType: serializer.fromJson<String>(json['entityType']),
+      payload: serializer.fromJson<String>(json['payload']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
+      pending: serializer.fromJson<bool>(json['pending']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'recordKey': serializer.toJson<String>(recordKey),
+      'entityType': serializer.toJson<String>(entityType),
+      'payload': serializer.toJson<String>(payload),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deleted': serializer.toJson<bool>(deleted),
+      'pending': serializer.toJson<bool>(pending),
+    };
+  }
+
+  SyncRecord copyWith(
+          {int? id,
+          String? recordKey,
+          String? entityType,
+          String? payload,
+          DateTime? updatedAt,
+          bool? deleted,
+          bool? pending}) =>
+      SyncRecord(
+        id: id ?? this.id,
+        recordKey: recordKey ?? this.recordKey,
+        entityType: entityType ?? this.entityType,
+        payload: payload ?? this.payload,
+        updatedAt: updatedAt ?? this.updatedAt,
+        deleted: deleted ?? this.deleted,
+        pending: pending ?? this.pending,
+      );
+  SyncRecord copyWithCompanion(SyncRecordsCompanion data) {
+    return SyncRecord(
+      id: data.id.present ? data.id.value : this.id,
+      recordKey: data.recordKey.present ? data.recordKey.value : this.recordKey,
+      entityType:
+          data.entityType.present ? data.entityType.value : this.entityType,
+      payload: data.payload.present ? data.payload.value : this.payload,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
+      pending: data.pending.present ? data.pending.value : this.pending,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncRecord(')
+          ..write('id: $id, ')
+          ..write('recordKey: $recordKey, ')
+          ..write('entityType: $entityType, ')
+          ..write('payload: $payload, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted, ')
+          ..write('pending: $pending')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      id, recordKey, entityType, payload, updatedAt, deleted, pending);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SyncRecord &&
+          other.id == this.id &&
+          other.recordKey == this.recordKey &&
+          other.entityType == this.entityType &&
+          other.payload == this.payload &&
+          other.updatedAt == this.updatedAt &&
+          other.deleted == this.deleted &&
+          other.pending == this.pending);
+}
+
+class SyncRecordsCompanion extends UpdateCompanion<SyncRecord> {
+  final Value<int> id;
+  final Value<String> recordKey;
+  final Value<String> entityType;
+  final Value<String> payload;
+  final Value<DateTime> updatedAt;
+  final Value<bool> deleted;
+  final Value<bool> pending;
+  const SyncRecordsCompanion({
+    this.id = const Value.absent(),
+    this.recordKey = const Value.absent(),
+    this.entityType = const Value.absent(),
+    this.payload = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.pending = const Value.absent(),
+  });
+  SyncRecordsCompanion.insert({
+    this.id = const Value.absent(),
+    required String recordKey,
+    required String entityType,
+    required String payload,
+    required DateTime updatedAt,
+    this.deleted = const Value.absent(),
+    this.pending = const Value.absent(),
+  })  : recordKey = Value(recordKey),
+        entityType = Value(entityType),
+        payload = Value(payload),
+        updatedAt = Value(updatedAt);
+  static Insertable<SyncRecord> custom({
+    Expression<int>? id,
+    Expression<String>? recordKey,
+    Expression<String>? entityType,
+    Expression<String>? payload,
+    Expression<DateTime>? updatedAt,
+    Expression<bool>? deleted,
+    Expression<bool>? pending,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (recordKey != null) 'record_key': recordKey,
+      if (entityType != null) 'entity_type': entityType,
+      if (payload != null) 'payload': payload,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deleted != null) 'deleted': deleted,
+      if (pending != null) 'pending': pending,
+    });
+  }
+
+  SyncRecordsCompanion copyWith(
+      {Value<int>? id,
+      Value<String>? recordKey,
+      Value<String>? entityType,
+      Value<String>? payload,
+      Value<DateTime>? updatedAt,
+      Value<bool>? deleted,
+      Value<bool>? pending}) {
+    return SyncRecordsCompanion(
+      id: id ?? this.id,
+      recordKey: recordKey ?? this.recordKey,
+      entityType: entityType ?? this.entityType,
+      payload: payload ?? this.payload,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deleted: deleted ?? this.deleted,
+      pending: pending ?? this.pending,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (recordKey.present) {
+      map['record_key'] = Variable<String>(recordKey.value);
+    }
+    if (entityType.present) {
+      map['entity_type'] = Variable<String>(entityType.value);
+    }
+    if (payload.present) {
+      map['payload'] = Variable<String>(payload.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
+    if (pending.present) {
+      map['pending'] = Variable<bool>(pending.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncRecordsCompanion(')
+          ..write('id: $id, ')
+          ..write('recordKey: $recordKey, ')
+          ..write('entityType: $entityType, ')
+          ..write('payload: $payload, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted, ')
+          ..write('pending: $pending')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -3339,6 +3720,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $BookCollectionsTable(this);
   late final $AchievementUnlocksTable achievementUnlocks =
       $AchievementUnlocksTable(this);
+  late final $SyncRecordsTable syncRecords = $SyncRecordsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3352,7 +3734,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         journalEntries,
         collections,
         bookCollections,
-        achievementUnlocks
+        achievementUnlocks,
+        syncRecords
       ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules(
@@ -5258,6 +5641,197 @@ typedef $$AchievementUnlocksTableProcessedTableManager = ProcessedTableManager<
     ),
     AchievementUnlock,
     PrefetchHooks Function()>;
+typedef $$SyncRecordsTableCreateCompanionBuilder = SyncRecordsCompanion
+    Function({
+  Value<int> id,
+  required String recordKey,
+  required String entityType,
+  required String payload,
+  required DateTime updatedAt,
+  Value<bool> deleted,
+  Value<bool> pending,
+});
+typedef $$SyncRecordsTableUpdateCompanionBuilder = SyncRecordsCompanion
+    Function({
+  Value<int> id,
+  Value<String> recordKey,
+  Value<String> entityType,
+  Value<String> payload,
+  Value<DateTime> updatedAt,
+  Value<bool> deleted,
+  Value<bool> pending,
+});
+
+class $$SyncRecordsTableFilterComposer
+    extends Composer<_$AppDatabase, $SyncRecordsTable> {
+  $$SyncRecordsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get recordKey => $composableBuilder(
+      column: $table.recordKey, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get entityType => $composableBuilder(
+      column: $table.entityType, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get payload => $composableBuilder(
+      column: $table.payload, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+      column: $table.deleted, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get pending => $composableBuilder(
+      column: $table.pending, builder: (column) => ColumnFilters(column));
+}
+
+class $$SyncRecordsTableOrderingComposer
+    extends Composer<_$AppDatabase, $SyncRecordsTable> {
+  $$SyncRecordsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get recordKey => $composableBuilder(
+      column: $table.recordKey, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get entityType => $composableBuilder(
+      column: $table.entityType, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get payload => $composableBuilder(
+      column: $table.payload, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+      column: $table.deleted, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get pending => $composableBuilder(
+      column: $table.pending, builder: (column) => ColumnOrderings(column));
+}
+
+class $$SyncRecordsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SyncRecordsTable> {
+  $$SyncRecordsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get recordKey =>
+      $composableBuilder(column: $table.recordKey, builder: (column) => column);
+
+  GeneratedColumn<String> get entityType => $composableBuilder(
+      column: $table.entityType, builder: (column) => column);
+
+  GeneratedColumn<String> get payload =>
+      $composableBuilder(column: $table.payload, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
+
+  GeneratedColumn<bool> get pending =>
+      $composableBuilder(column: $table.pending, builder: (column) => column);
+}
+
+class $$SyncRecordsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $SyncRecordsTable,
+    SyncRecord,
+    $$SyncRecordsTableFilterComposer,
+    $$SyncRecordsTableOrderingComposer,
+    $$SyncRecordsTableAnnotationComposer,
+    $$SyncRecordsTableCreateCompanionBuilder,
+    $$SyncRecordsTableUpdateCompanionBuilder,
+    (SyncRecord, BaseReferences<_$AppDatabase, $SyncRecordsTable, SyncRecord>),
+    SyncRecord,
+    PrefetchHooks Function()> {
+  $$SyncRecordsTableTableManager(_$AppDatabase db, $SyncRecordsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SyncRecordsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SyncRecordsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SyncRecordsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            Value<String> recordKey = const Value.absent(),
+            Value<String> entityType = const Value.absent(),
+            Value<String> payload = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<bool> deleted = const Value.absent(),
+            Value<bool> pending = const Value.absent(),
+          }) =>
+              SyncRecordsCompanion(
+            id: id,
+            recordKey: recordKey,
+            entityType: entityType,
+            payload: payload,
+            updatedAt: updatedAt,
+            deleted: deleted,
+            pending: pending,
+          ),
+          createCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            required String recordKey,
+            required String entityType,
+            required String payload,
+            required DateTime updatedAt,
+            Value<bool> deleted = const Value.absent(),
+            Value<bool> pending = const Value.absent(),
+          }) =>
+              SyncRecordsCompanion.insert(
+            id: id,
+            recordKey: recordKey,
+            entityType: entityType,
+            payload: payload,
+            updatedAt: updatedAt,
+            deleted: deleted,
+            pending: pending,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$SyncRecordsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $SyncRecordsTable,
+    SyncRecord,
+    $$SyncRecordsTableFilterComposer,
+    $$SyncRecordsTableOrderingComposer,
+    $$SyncRecordsTableAnnotationComposer,
+    $$SyncRecordsTableCreateCompanionBuilder,
+    $$SyncRecordsTableUpdateCompanionBuilder,
+    (SyncRecord, BaseReferences<_$AppDatabase, $SyncRecordsTable, SyncRecord>),
+    SyncRecord,
+    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -5280,4 +5854,6 @@ class $AppDatabaseManager {
       $$BookCollectionsTableTableManager(_db, _db.bookCollections);
   $$AchievementUnlocksTableTableManager get achievementUnlocks =>
       $$AchievementUnlocksTableTableManager(_db, _db.achievementUnlocks);
+  $$SyncRecordsTableTableManager get syncRecords =>
+      $$SyncRecordsTableTableManager(_db, _db.syncRecords);
 }

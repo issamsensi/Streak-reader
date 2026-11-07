@@ -10,6 +10,7 @@ import '../../../core/utils/date_only.dart';
 import '../../../domain/entities/monthly_goal.dart';
 import '../../../domain/entities/reading_reminder.dart';
 import '../../stats/providers/stats_provider.dart';
+import '../../sync/providers/sync_provider.dart';
 import '../providers/settings_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -328,6 +329,68 @@ class SettingsScreen extends ConsumerWidget {
                 settings.readingReminder,
               ),
             ),
+          ),
+          const SizedBox(height: 16),
+          Builder(
+            builder: (context) {
+              final sync = ref.watch(syncServiceProvider);
+              final user = sync.currentUser;
+              return _SettingsSection(
+                icon: Icons.cloud_outlined,
+                title: 'Cloud sync',
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 4, 8, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        !sync.isAvailable
+                            ? 'Configure Supabase to enable synchronization.'
+                            : user == null
+                                ? 'Your library stays local until you sign in.'
+                                : 'Signed in as ${user.email ?? 'Google user'}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      if (sync.isAvailable && user == null)
+                        OutlinedButton.icon(
+                          onPressed: () async {
+                            await sync.signInWithGoogle();
+                          },
+                          icon: const Icon(Icons.login_rounded),
+                          label: const Text('Sign in with Google'),
+                        )
+                      else if (user != null)
+                        Row(
+                          children: [
+                            FilledButton.icon(
+                              onPressed: () async {
+                                await sync.synchronize();
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Synchronization complete'),
+                                    ),
+                                  );
+                                }
+                              },
+                              icon: const Icon(Icons.sync_rounded),
+                              label: const Text('Sync now'),
+                            ),
+                            const SizedBox(width: 8),
+                            TextButton(
+                              onPressed: sync.signOut,
+                              child: const Text('Sign out'),
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
           const SizedBox(height: 16),
           _SettingsSection(
