@@ -99,5 +99,9 @@
       "remaining": {"type": "int"},
       "unit": {"type": "String"}
     }
-  }
+  },
+  "startReading": "Commencer la lecture",
+  "pauseReading": "Pause",
+  "resumeReading": "Reprendre",
+  "finishReading": "Terminer la session"
 }

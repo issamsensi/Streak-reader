@@ -13,7 +13,24 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (Migrator m) => m.createAll(),
+        onUpgrade: (Migrator m, int from, int to) async {
+          if (from < 2) {
+            await m.addColumn(readingSessions, readingSessions.startTime);
+            await m.addColumn(readingSessions, readingSessions.endTime);
+            await m.addColumn(readingSessions, readingSessions.startingPage);
+            await m.addColumn(readingSessions, readingSessions.endingPage);
+            await m.addColumn(
+              readingSessions,
+              readingSessions.activeSegmentStartedAt,
+            );
+          }
+        },
+      );
 
   // Books
   Future<List<Book>> getAllBooks() => select(books).get();
@@ -40,8 +57,45 @@ class AppDatabase extends _$AppDatabase {
   // Reading sessions
   Future<int> insertSession(ReadingSessionsCompanion session) =>
       into(readingSessions).insert(session);
-  Future<List<ReadingSession>> getAllSessions() =>
-      select(readingSessions).get();
+  Future<List<ReadingSession>> getAllSessions() => (select(readingSessions)
+        ..where((tbl) => tbl.startTime.isNull() | tbl.endTime.isNotNull()))
+      .get();
+  Future<ReadingSession?> getActiveSession(int bookId) async {
+    final rows = await (select(readingSessions)
+          ..where((tbl) =>
+              tbl.bookId.equals(bookId) &
+              tbl.startTime.isNotNull() &
+              tbl.endTime.isNull())
+          ..orderBy([(tbl) => OrderingTerm.desc(tbl.id)])
+          ..limit(1))
+        .get();
+    return rows.isEmpty ? null : rows.first;
+  }
+
+  Future<int> insertActiveSession(ReadingSessionsCompanion session) {
+    return transaction(() async {
+      final existing = await (select(readingSessions)
+            ..where((tbl) =>
+                tbl.bookId.equals(session.bookId.value) &
+                tbl.startTime.isNotNull() &
+                tbl.endTime.isNull())
+            ..limit(1))
+          .getSingleOrNull();
+      if (existing != null) return existing.id;
+      return into(readingSessions).insert(session);
+    });
+  }
+
+  Future<bool> updateSession(
+    int id,
+    ReadingSessionsCompanion session,
+  ) =>
+      (update(readingSessions)..where((tbl) => tbl.id.equals(id)))
+          .write(session)
+          .then((count) => count > 0);
+
+  Future<int> deleteSession(int id) =>
+      (delete(readingSessions)..where((tbl) => tbl.id.equals(id))).go();
   Future<List<ReadingSession>> getSessionsForDate(String date) =>
       (select(readingSessions)..where((tbl) => tbl.date.equals(date))).get();
 
@@ -51,6 +105,8 @@ class AppDatabase extends _$AppDatabase {
     String endDate,
   ) =>
       (select(readingSessions)
-            ..where((tbl) => tbl.date.isBetweenValues(startDate, endDate)))
+            ..where((tbl) =>
+                tbl.date.isBetweenValues(startDate, endDate) &
+                (tbl.startTime.isNull() | tbl.endTime.isNotNull())))
           .get();
 }

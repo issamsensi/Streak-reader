@@ -315,4 +315,16 @@ class AppLocalizationsAr extends AppLocalizations {
   String monthlyGoalRemaining(int remaining, String unit) {
     return 'متبقٍ $remaining $unit';
   }
+
+  @override
+  String get startReading => 'بدء القراءة';
+
+  @override
+  String get pauseReading => 'إيقاف مؤقت';
+
+  @override
+  String get resumeReading => 'استئناف';
+
+  @override
+  String get finishReading => 'إنهاء الجلسة';
 }

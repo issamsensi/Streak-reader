@@ -663,6 +663,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{remaining} {unit} remaining'**
   String monthlyGoalRemaining(int remaining, String unit);
+
+  /// No description provided for @startReading.
+  ///
+  /// In en, this message translates to:
+  /// **'Start reading'**
+  String get startReading;
+
+  /// No description provided for @pauseReading.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get pauseReading;
+
+  /// No description provided for @resumeReading.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume'**
+  String get resumeReading;
+
+  /// No description provided for @finishReading.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish session'**
+  String get finishReading;
 }
 
 class _AppLocalizationsDelegate

@@ -161,5 +161,9 @@
       "remaining": {"type": "int"},
       "unit": {"type": "String"}
     }
-  }
+  },
+  "startReading": "Start reading",
+  "pauseReading": "Pause",
+  "resumeReading": "Resume",
+  "finishReading": "Finish session"
 }

@@ -52,4 +52,58 @@ void main() {
     expect(books.single.lastPage, 7);
     expect(controller.state.isActive, isTrue);
   });
+
+  test('pause excludes paused time and finish stores session metadata',
+      () async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+
+    final bookId = await db.insertBook(BooksCompanion.insert(title: 'Book'));
+    final controller = ReadingSessionController(db);
+    controller.start(bookId, 3);
+    await Future<void>.delayed(const Duration(milliseconds: 1100));
+    await controller.pause();
+    final pausedSeconds = controller.state.elapsedSeconds;
+
+    expect(pausedSeconds, greaterThanOrEqualTo(1));
+    expect(await db.getAllSessions(), isEmpty);
+
+    await Future<void>.delayed(const Duration(milliseconds: 1100));
+    expect(controller.state.elapsedSeconds, pausedSeconds);
+
+    await controller.resume();
+    controller.updatePage(9);
+    await Future<void>.delayed(const Duration(milliseconds: 1100));
+    await controller.finish();
+
+    final sessions = await db.getAllSessions();
+    expect(sessions, hasLength(1));
+    final session = sessions.single;
+    expect(session.startTime, isNotNull);
+    expect(session.endTime, isNotNull);
+    expect(session.startingPage, 3);
+    expect(session.endingPage, 9);
+    expect(session.pagesRead, 6);
+    expect(session.durationSeconds, greaterThanOrEqualTo(pausedSeconds + 1));
+  });
+
+  test('restores a persisted active session as paused', () async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+
+    final bookId = await db.insertBook(BooksCompanion.insert(title: 'Book'));
+    final first = ReadingSessionController(db);
+    first.start(bookId, 1);
+    await Future<void>.delayed(const Duration(milliseconds: 1100));
+    await first.persistCurrentPage();
+
+    final restored = ReadingSessionController(db);
+    expect(await restored.restore(bookId, 1), isTrue);
+    expect(restored.isActive, isFalse);
+    expect(restored.isPaused, isTrue);
+    expect(restored.hasSession, isTrue);
+    await restored.finish();
+
+    expect(await db.getAllSessions(), hasLength(1));
+  });
 }

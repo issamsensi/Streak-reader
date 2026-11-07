@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pdfrx/pdfrx.dart';
 
-import '../../../core/constants/app_constants.dart';
 import '../../../core/l10n/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/file_exists.dart';
 import '../providers/reading_session_provider.dart';
+import 'session_controls.dart';
 
 class PdfReaderScreen extends ConsumerStatefulWidget {
   final int bookId;
@@ -31,9 +31,10 @@ class PdfReaderScreen extends ConsumerStatefulWidget {
 class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen>
     with WidgetsBindingObserver {
   final PdfViewerController _controller = PdfViewerController();
-  Timer? _idleTimer;
+  Timer? _displayTimer;
   // Cached in initState so dispose() never touches `ref` after unmount.
   ReadingSessionController? _sessionController;
+  bool _sessionReady = false;
 
   int _currentPage = 1;
   int _pageCount = 0;
@@ -49,35 +50,31 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _sessionController = ref.read(readingSessionControllerProvider.notifier);
-      _sessionController!.start(widget.bookId, _initialPage);
-      _startTimers();
+      _sessionController!.setBookContext(widget.bookId, _initialPage);
+      unawaited(_restoreSession());
+      _startDisplayTimer();
     });
   }
 
-  void _startTimers() {
-    // Keep the timer alive after an idle save so a later idle period
-    // in the same sitting is also detected.
-    _idleTimer = Timer.periodic(const Duration(seconds: 30), (_) async {
-      if (!mounted) return;
-      final controller = _sessionController;
-      if (controller == null || !controller.isActive) return;
-      if (controller.isIdle(AppConstants.idleTimeoutMinutes)) {
-        await controller.stopAndSave();
-      }
+  Future<void> _restoreSession() async {
+    final controller = _sessionController;
+    if (controller == null) return;
+    await controller.restore(widget.bookId, _initialPage);
+    if (mounted) {
+      setState(() => _sessionReady = true);
+    }
+  }
+
+  void _startDisplayTimer() {
+    _displayTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
     });
   }
 
   void _onInteraction() {
     final controller = _sessionController;
     if (controller == null || !mounted) return;
-    if (!controller.isActive) {
-      // Restart tracking after an idle save, from the preserved page.
-      final resumePage =
-          controller.currentPage > 0 ? controller.currentPage : _initialPage;
-      controller.start(widget.bookId, resumePage);
-    } else {
-      controller.recordInteraction();
-    }
+    controller.recordInteraction();
   }
 
   @override
@@ -89,6 +86,7 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen>
         state == AppLifecycleState.hidden) {
       final controller = _sessionController;
       if (controller != null) {
+        unawaited(controller.pause());
         unawaited(controller.persistCurrentPage());
       }
     }
@@ -97,13 +95,11 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _idleTimer?.cancel();
+    _displayTimer?.cancel();
     // Fire-and-forget on the cached controller only: no `ref` use here,
     // and the provider outlives this widget so the write completes.
     final controller = _sessionController;
-    if (controller != null) {
-      unawaited(controller.stopAndSave());
-    }
+    if (controller != null) unawaited(controller.finish());
     super.dispose();
   }
 
@@ -267,6 +263,20 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen>
                     ),
                   ),
                 ),
+              ),
+            ),
+          if (_sessionController != null && _sessionReady)
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: _pageCount > 0 ? 64 : 18,
+              child: SessionControls(
+                controller: _sessionController!,
+                bookId: widget.bookId,
+                initialPage: _currentPage,
+                onChanged: () {
+                  if (mounted) setState(() {});
+                },
               ),
             ),
         ],
