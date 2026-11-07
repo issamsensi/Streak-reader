@@ -26,6 +26,7 @@ void main() {
       lastPage: 10,
       isCompleted: false,
       readingStatus: 'currently_reading',
+      addedAsPreviouslyCompleted: false,
       createdAt: DateTime(2026, 1, 1),
     );
     const session = ReadingSession(

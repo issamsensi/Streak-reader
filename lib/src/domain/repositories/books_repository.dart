@@ -8,7 +8,12 @@ abstract class BooksRepository {
       int? totalPages,
       String? filePath,
       String? fileName,
-      int? fileSize});
+      int? fileSize,
+      String? coverPath,
+      String? description,
+      String status = 'want_to_read',
+      DateTime? completionDate,
+      bool historical = false});
   Future<void> updateTitle(int id, String title);
   Future<void> updateBookFile(int id,
       {required String filePath, String? fileName, int? fileSize});

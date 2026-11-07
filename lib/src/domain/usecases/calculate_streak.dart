@@ -12,6 +12,11 @@ class StreakResult {
   final int actualLongestStreak;
   final int totalMinutes;
   final int completedBooks;
+  final int totalBooks;
+  final int wantToReadBooks;
+  final int pausedBooks;
+  final int historicallyCompletedBooks;
+  final int trackedCompletedBooks;
   final int totalPagesRead;
   final int todaySeconds;
   final int todayMinutes;
@@ -25,6 +30,11 @@ class StreakResult {
     this.actualLongestStreak = 0,
     required this.totalMinutes,
     required this.completedBooks,
+    this.totalBooks = 0,
+    this.wantToReadBooks = 0,
+    this.pausedBooks = 0,
+    this.historicallyCompletedBooks = 0,
+    this.trackedCompletedBooks = 0,
     required this.totalPagesRead,
     this.todaySeconds = 0,
     this.todayMinutes = 0,
@@ -56,6 +66,7 @@ class CalculateStreak {
 
   StreakResult call(List<ReadingSession> sessions, List<Book> books) {
     final completedBooks = books.where((b) => b.isCompleted).length;
+    final historical = books.where((b) => b.addedAsPreviouslyCompleted).length;
     final todayKey = DateOnly.key(DateOnly.fromDate(_now()));
 
     final readingStatistics = ReadingStatistics.fromRecords(
@@ -70,6 +81,12 @@ class CalculateStreak {
         longestStreak: 0,
         totalMinutes: 0,
         completedBooks: completedBooks,
+        totalBooks: books.length,
+        wantToReadBooks:
+            books.where((b) => b.readingStatus == 'want_to_read').length,
+        pausedBooks: books.where((b) => b.readingStatus == 'paused').length,
+        historicallyCompletedBooks: historical,
+        trackedCompletedBooks: completedBooks - historical,
         totalPagesRead: 0,
         todaySeconds: 0,
         todayMinutes: 0,
@@ -117,6 +134,12 @@ class CalculateStreak {
       actualLongestStreak: actualLongest,
       totalMinutes: totalSeconds ~/ 60,
       completedBooks: completedBooks,
+      totalBooks: books.length,
+      wantToReadBooks:
+          books.where((b) => b.readingStatus == 'want_to_read').length,
+      pausedBooks: books.where((b) => b.readingStatus == 'paused').length,
+      historicallyCompletedBooks: historical,
+      trackedCompletedBooks: completedBooks - historical,
       totalPagesRead: totalPages,
       todaySeconds: todaySeconds,
       todayMinutes: todaySeconds ~/ 60,

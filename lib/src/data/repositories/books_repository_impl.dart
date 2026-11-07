@@ -18,8 +18,13 @@ class BooksRepositoryImpl implements BooksRepository {
       int? totalPages,
       String? filePath,
       String? fileName,
-      int? fileSize}) {
-    return db.insertBook(
+      int? fileSize,
+      String? coverPath,
+      String? description,
+      String status = 'want_to_read',
+      DateTime? completionDate,
+      bool historical = false}) async {
+    final id = await db.insertBook(
       BooksCompanion.insert(
         title: title,
         author: Value(author),
@@ -27,8 +32,22 @@ class BooksRepositoryImpl implements BooksRepository {
         filePath: Value(filePath),
         fileName: Value(fileName),
         fileSize: Value(fileSize),
+        coverPath: Value(coverPath),
+        description: Value(description),
+        readingStatus: Value(status),
+        isCompleted: Value(status == 'completed'),
+        completionDate: Value(completionDate),
+        addedAsPreviouslyCompleted: Value(historical),
       ),
     );
+    if (status == 'completed') {
+      await db.addBookCompletion(
+        bookId: id,
+        completedAt: completionDate ?? DateTime.now(),
+        historical: historical,
+      );
+    }
+    return id;
   }
 
   @override

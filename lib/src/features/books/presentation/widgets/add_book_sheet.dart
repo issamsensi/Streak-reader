@@ -16,18 +16,23 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
   final _titleController = TextEditingController();
   final _authorController = TextEditingController();
   final _pagesController = TextEditingController();
+  final _descriptionController = TextEditingController();
   String? _filePath;
+  String? _coverPath;
   String? _fileName;
   int? _fileSize;
   String? _errorText;
   bool _loading = false;
   bool _showMetadata = false;
+  String _status = 'want_to_read';
+  DateTime? _completionDate;
 
   @override
   void dispose() {
     _titleController.dispose();
     _authorController.dispose();
     _pagesController.dispose();
+    _descriptionController.dispose();
     super.dispose();
   }
 
@@ -61,7 +66,14 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
         _titleController.text = picked.name
             .replaceFirst(RegExp(r'\.pdf$', caseSensitive: false), '');
       }
+
     });
+  }
+
+  Future<void> _pickCover() async {
+    final result = await FilePicker.platform.pickFiles(type: FileType.image);
+    if (result == null || !mounted) return;
+    setState(() => _coverPath = result.files.single.path);
   }
 
   Future<void> _save() async {
@@ -87,6 +99,13 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
             filePath: _filePath,
             fileName: _fileName,
             fileSize: _fileSize,
+            coverPath: _coverPath,
+            description: _descriptionController.text.trim().isEmpty
+                ? null
+                : _descriptionController.text.trim(),
+            status: _status,
+            completionDate: _completionDate,
+            historical: _status == 'completed' && _filePath == null,
           );
     } catch (_) {
       if (!mounted) return;
@@ -191,9 +210,73 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
                 prefixIcon: const Icon(Icons.format_list_numbered),
               ),
             ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _descriptionController,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: 'Description (optional)',
+                prefixIcon: Icon(Icons.notes_outlined),
+              ),
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              initialValue: _status,
+              decoration: const InputDecoration(
+                labelText: 'Reading status',
+                prefixIcon: Icon(Icons.flag_outlined),
+              ),
+              items: const [
+                DropdownMenuItem(
+                  value: 'want_to_read',
+                  child: Text('Want to Read'),
+                ),
+                DropdownMenuItem(
+                  value: 'currently_reading',
+                  child: Text('Currently Reading'),
+                ),
+                DropdownMenuItem(
+                  value: 'completed',
+                  child: Text('Completed'),
+                ),
+                DropdownMenuItem(value: 'paused', child: Text('Paused')),
+              ],
+              onChanged: (value) => setState(() => _status = value!),
+            ),
+            if (_status == 'completed') ...[
+              const SizedBox(height: 12),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.event_outlined),
+                title: Text(
+                  _completionDate == null
+                      ? 'Completion date (optional)'
+                      : 'Completed ${_completionDate!.year}-'
+                          '${_completionDate!.month.toString().padLeft(2, '0')}-'
+                          '${_completionDate!.day.toString().padLeft(2, '0')}',
+                ),
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    firstDate: DateTime(1900),
+                    lastDate: DateTime.now(),
+                    initialDate: _completionDate ?? DateTime.now(),
+                  );
+                  if (picked != null) setState(() => _completionDate = picked);
+                },
+              ),
+            ],
           ],
           const SizedBox(height: 12),
           _PdfPickerTile(fileName: _fileName, onTap: _pickPdf),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: _pickCover,
+            icon: const Icon(Icons.image_outlined),
+            label: Text(
+              _coverPath == null ? 'Add cover image (optional)' : 'Cover selected',
+            ),
+          ),
           if (_filePath == null)
             Padding(
               padding: const EdgeInsets.only(top: 8),

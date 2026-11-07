@@ -9,6 +9,7 @@ void main() {
         lastPage: 0,
         isCompleted: completed,
         readingStatus: completed ? 'completed' : 'want_to_read',
+        addedAsPreviouslyCompleted: false,
         createdAt: DateTime(2026),
       );
 

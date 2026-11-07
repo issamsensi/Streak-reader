@@ -16,6 +16,7 @@ import '../../calendar/presentation/reading_calendar_screen.dart';
 import '../../daily_goal/presentation/daily_goal_card.dart';
 import '../../reader/presentation/pdf_reader_screen.dart';
 import '../../reader/presentation/physical_reader_screen.dart';
+import 'book_details_screen.dart';
 import '../../settings/presentation/settings_screen.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../../stats/presentation/stats_screen.dart';
@@ -624,6 +625,10 @@ class _BooksListScreenState extends ConsumerState<BooksListScreen> {
                           icon: const Icon(Icons.sort_rounded),
                           onSelected: (value) => setState(() => _sort = value),
                           itemBuilder: (context) => [
+                            const PopupMenuItem(
+                              value: 'details',
+                              child: Text('Book details'),
+                            ),
                             PopupMenuItem(
                               value: 'recent',
                               child: Text(l10n.sortRecent),
@@ -676,6 +681,11 @@ class _BooksListScreenState extends ConsumerState<BooksListScreen> {
                       ),
                     )
                     .then((_) => ref.invalidate(booksListProvider)),
+                onDetails: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => BookDetailsScreen(bookId: book.id),
+                  ),
+                ),
                 onEdit: () => _showEditDialog(context, book),
                 onAttachPdf: () => _attachPdf(context, ref, book),
                 onSetStatus: (status) => _setStatus(context, ref, book, status),
@@ -704,6 +714,7 @@ class _BookCard extends StatelessWidget {
   final Book book;
   final VoidCallback onTap;
   final VoidCallback onPhysicalReading;
+  final VoidCallback onDetails;
   final VoidCallback onEdit;
   final VoidCallback onAttachPdf;
   final ValueChanged<String> onSetStatus;
@@ -714,6 +725,7 @@ class _BookCard extends StatelessWidget {
     required this.book,
     required this.onTap,
     required this.onPhysicalReading,
+    required this.onDetails,
     required this.onEdit,
     required this.onAttachPdf,
     required this.onSetStatus,
@@ -837,6 +849,8 @@ class _BookCard extends StatelessWidget {
                 onSelected: (value) {
                   if (value == 'edit') {
                     onEdit();
+                  } else if (value == 'details') {
+                    onDetails();
                   } else if (value == 'physical_reading') {
                     onPhysicalReading();
                   } else if (value == 'attach_pdf') {

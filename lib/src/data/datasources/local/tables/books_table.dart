@@ -12,5 +12,10 @@ class Books extends Table {
   BoolColumn get isCompleted => boolean().withDefault(const Constant(false))();
   TextColumn get readingStatus =>
       text().withDefault(const Constant('want_to_read'))();
+  TextColumn get coverPath => text().nullable()();
+  TextColumn get description => text().nullable()();
+  DateTimeColumn get completionDate => dateTime().nullable()();
+  BoolColumn get addedAsPreviouslyCompleted =>
+      boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }

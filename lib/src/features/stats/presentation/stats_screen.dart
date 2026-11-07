@@ -62,6 +62,8 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                 stats: stats,
                 insights: insights,
               ),
+              const SizedBox(height: 12),
+              _BookStatusSummary(stats: stats),
               const SizedBox(height: 20),
               _ReadingInsightsCard(
                 insights: const GenerateReadingInsights()(
@@ -98,6 +100,45 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
         },
       ),
     );
+  }
+
+}
+
+class _BookStatusSummary extends StatelessWidget {
+    final StreakResult stats;
+
+    const _BookStatusSummary({required this.stats});
+
+    @override
+    Widget build(BuildContext context) {
+      final theme = Theme.of(context);
+      final items = [
+        ('All books', stats.totalBooks),
+        ('Want to read', stats.wantToReadBooks),
+        ('Completed', stats.completedBooks),
+        ('Paused', stats.pausedBooks),
+        ('Tracked completions', stats.trackedCompletedBooks),
+        ('Previously completed', stats.historicallyCompletedBooks),
+      ];
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Wrap(
+            spacing: 18,
+            runSpacing: 12,
+            children: [
+              for (final item in items)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('${item.$2}', style: theme.textTheme.titleLarge),
+                    Text(item.$1, style: theme.textTheme.labelSmall),
+                  ],
+                ),
+            ],
+          ),
+        ),
+      );
   }
 }
 

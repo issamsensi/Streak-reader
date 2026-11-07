@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'connection/connection.dart' as connection;
 import 'tables/books_table.dart';
+import 'tables/book_completions_table.dart';
 import 'tables/annotations_tables.dart';
 import 'tables/reading_sessions_table.dart';
 import 'tables/sync_table.dart';
@@ -12,6 +13,7 @@ part 'app_database.g.dart';
 @DriftDatabase(
   tables: [
     Books,
+    BookCompletions,
     ReadingSessions,
     Bookmarks,
     Highlights,
@@ -29,7 +31,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -76,11 +78,35 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(readingSessions, readingSessions.readingMode);
             await m.addColumn(readingSessions, readingSessions.note);
           }
+          if (from < 10) {
+            await m.addColumn(books, books.coverPath);
+            await m.addColumn(books, books.description);
+            await m.addColumn(books, books.completionDate);
+            await m.addColumn(books, books.addedAsPreviouslyCompleted);
+            await m.createTable(bookCompletions);
+          }
         },
       );
 
   // Books
   Future<List<Book>> getAllBooks() => select(books).get();
+  Future<List<BookCompletion>> getBookCompletions(int bookId) =>
+      (select(bookCompletions)
+            ..where((table) => table.bookId.equals(bookId))
+            ..orderBy([(table) => OrderingTerm.desc(table.completedAt)]))
+          .get();
+  Future<int> addBookCompletion({
+    required int bookId,
+    required DateTime completedAt,
+    required bool historical,
+  }) =>
+      into(bookCompletions).insert(
+        BookCompletionsCompanion.insert(
+          bookId: bookId,
+          completedAt: completedAt,
+          historical: Value(historical),
+        ),
+      );
   Future<int> insertBook(BooksCompanion book) async {
     final id = await into(books).insert(book);
     await _queueBook(id);
@@ -107,6 +133,8 @@ class AppDatabase extends _$AppDatabase {
       await (delete(notes)..where((tbl) => tbl.bookId.equals(id))).go();
       await (delete(journalEntries)..where((tbl) => tbl.bookId.equals(id)))
           .go();
+      await (delete(bookCompletions)..where((tbl) => tbl.bookId.equals(id)))
+          .go();
       await (delete(bookCollections)..where((tbl) => tbl.bookId.equals(id)))
           .go();
       return (delete(books)..where((tbl) => tbl.id.equals(id))).go();
@@ -116,6 +144,39 @@ class AppDatabase extends _$AppDatabase {
   Future<void> updateBookLastPage(int id, int lastPage) =>
       (update(books)..where((tbl) => tbl.id.equals(id)))
           .write(BooksCompanion(lastPage: Value(lastPage)));
+
+  Future<void> updateBookStatus(
+    int id,
+    String status, {
+    DateTime? completionDate,
+    bool? historical,
+  }) async {
+    final current = await (select(books)..where((tbl) => tbl.id.equals(id)))
+        .getSingleOrNull();
+    await (update(books)..where((tbl) => tbl.id.equals(id))).write(
+      BooksCompanion(
+        readingStatus: Value(status),
+        isCompleted: Value(status == 'completed'),
+        completionDate: completionDate == null
+            ? const Value.absent()
+            : Value(completionDate),
+        addedAsPreviouslyCompleted: historical == null
+            ? const Value.absent()
+            : Value(historical),
+      ),
+    );
+    if (status == 'completed' && current?.readingStatus != 'completed') {
+      final existing = await getBookCompletions(id);
+      if (existing.isEmpty ||
+          existing.first.completedAt != (completionDate ?? DateTime.now())) {
+        await addBookCompletion(
+          bookId: id,
+          completedAt: completionDate ?? DateTime.now(),
+          historical: historical ?? false,
+        );
+      }
+    }
+  }
 
   // Reading sessions
   Future<int> insertSession(ReadingSessionsCompanion session) async {
@@ -292,15 +353,6 @@ class AppDatabase extends _$AppDatabase {
   Future<int> deleteJournalEntry(int id) =>
       (delete(journalEntries)..where((tbl) => tbl.id.equals(id))).go();
 
-  Future<void> updateBookStatus(int id, String status) async {
-    await (update(books)..where((tbl) => tbl.id.equals(id))).write(
-      BooksCompanion(
-        readingStatus: Value(status),
-        isCompleted: Value(status == 'completed'),
-      ),
-    );
-  }
-
   Future<List<Collection>> getCollections() =>
       (select(collections)..orderBy([(tbl) => OrderingTerm.asc(tbl.name)]))
           .get();
@@ -368,6 +420,10 @@ class AppDatabase extends _$AppDatabase {
         'lastPage': book.lastPage,
         'isCompleted': book.isCompleted,
         'readingStatus': book.readingStatus,
+        'coverPath': book.coverPath,
+        'description': book.description,
+        'completionDate': book.completionDate?.toUtc().toIso8601String(),
+        'addedAsPreviouslyCompleted': book.addedAsPreviouslyCompleted,
         'createdAt': book.createdAt.toUtc().toIso8601String(),
       }),
       updatedAt: DateTime.now().toUtc(),
@@ -449,6 +505,13 @@ class AppDatabase extends _$AppDatabase {
         isCompleted: Value(data['isCompleted'] as bool? ?? false),
         readingStatus:
             Value(data['readingStatus'] as String? ?? 'want_to_read'),
+        coverPath: Value(data['coverPath'] as String?),
+        description: Value(data['description'] as String?),
+        completionDate: Value(data['completionDate'] == null
+            ? null
+            : DateTime.parse(data['completionDate'] as String)),
+        addedAsPreviouslyCompleted:
+            Value(data['addedAsPreviouslyCompleted'] as bool? ?? false),
         createdAt: Value(DateTime.parse(data['createdAt'] as String)),
         filePath:
             existing == null ? const Value.absent() : Value(existing.filePath),

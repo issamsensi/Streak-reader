@@ -24,6 +24,45 @@ void main() {
     expect((await repo.getAllBooks()).single.isCompleted, isFalse);
   });
 
+  test('manual previously completed books preserve historical completion data',
+      () async {
+    final completedAt = DateTime(2020, 5, 6);
+    final id = await repo.addBook(
+      title: 'Already read',
+      author: 'Author',
+      totalPages: 300,
+      description: 'A physical book',
+      status: 'completed',
+      completionDate: completedAt,
+      historical: true,
+    );
+
+    final book = (await repo.getAllBooks()).single;
+    expect(book.filePath, isNull);
+    expect(book.addedAsPreviouslyCompleted, isTrue);
+    expect(book.completionDate, completedAt);
+    expect(await db.getAllSessions(), isEmpty);
+    final completions = await db.getBookCompletions(id);
+    expect(completions.single.historical, isTrue);
+    expect(completions.single.completedAt, completedAt);
+  });
+
+  test('rereading preserves previous completion records', () async {
+    final id = await repo.addBook(
+      title: 'Reread',
+      status: 'completed',
+      completionDate: DateTime(2022, 1, 1),
+      historical: true,
+    );
+    await repo.updateStatus(id, 'currently_reading');
+    await repo.updateStatus(id, 'completed');
+
+    final completions = await db.getBookCompletions(id);
+    expect(completions, hasLength(2));
+    expect(completions.where((item) => item.historical), hasLength(1));
+    expect(await db.getAllSessions(), isEmpty);
+  });
+
   test('deleteBook removes the book and all of its reading sessions', () async {
     final id = await repo.addBook(title: 'Book to delete');
     final otherId = await repo.addBook(title: 'Book to keep');
