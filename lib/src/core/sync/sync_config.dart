@@ -1,7 +1,10 @@
 class SyncConfig {
   const SyncConfig._();
 
-  static const url = String.fromEnvironment('SUPABASE_URL');
+  static const url = String.fromEnvironment(
+    'SUPABASE_URL',
+    defaultValue: 'https://yteqylwmiygtjzqgiylx.supabase.co',
+  );
   static const anonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
 
   static bool get isConfigured => url.isNotEmpty && anonKey.isNotEmpty;
