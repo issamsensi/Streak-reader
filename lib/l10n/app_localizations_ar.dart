@@ -399,4 +399,36 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get edit => 'تعديل';
+
+  @override
+  String get notes => 'الملاحظات';
+
+  @override
+  String get newNote => 'ملاحظة جديدة';
+
+  @override
+  String get editNote => 'تعديل الملاحظة';
+
+  @override
+  String get noteHint => 'اكتب أفكارك...';
+
+  @override
+  String get linkNoteToPage => 'ربط الملاحظة بهذه الصفحة';
+
+  @override
+  String get generalNote => 'ملاحظة عامة';
+
+  @override
+  String get searchNotes => 'البحث في الملاحظات';
+
+  @override
+  String get noNotes => 'لا توجد ملاحظات بعد.';
+
+  @override
+  String get noMatchingNotes => 'لا توجد ملاحظات مطابقة للبحث.';
+
+  @override
+  String noteUpdatedAt(String date) {
+    return 'آخر تعديل: $date';
+  }
 }

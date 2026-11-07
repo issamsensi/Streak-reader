@@ -404,4 +404,36 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get edit => 'Modifier';
+
+  @override
+  String get notes => 'Notes';
+
+  @override
+  String get newNote => 'Nouvelle note';
+
+  @override
+  String get editNote => 'Modifier la note';
+
+  @override
+  String get noteHint => 'Écrivez vos réflexions...';
+
+  @override
+  String get linkNoteToPage => 'Lier la note à cette page';
+
+  @override
+  String get generalNote => 'Note générale';
+
+  @override
+  String get searchNotes => 'Rechercher dans les notes';
+
+  @override
+  String get noNotes => 'Aucune note pour le moment.';
+
+  @override
+  String get noMatchingNotes => 'Aucune note ne correspond à la recherche.';
+
+  @override
+  String noteUpdatedAt(String date) {
+    return 'Modifiée le $date';
+  }
 }

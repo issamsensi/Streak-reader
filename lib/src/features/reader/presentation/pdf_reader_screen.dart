@@ -13,6 +13,7 @@ import '../../../data/datasources/local/app_database.dart';
 import '../providers/reading_session_provider.dart';
 import 'session_controls.dart';
 import 'annotations_sheet.dart';
+import 'note_draft.dart';
 
 class PdfReaderScreen extends ConsumerStatefulWidget {
   final int bookId;
@@ -41,6 +42,7 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen>
   bool _sessionReady = false;
   List<Bookmark> _bookmarks = const [];
   List<Highlight> _highlights = const [];
+  List<Note> _notes = const [];
   PdfTextRanges? _selection;
 
   int _currentPage = 1;
@@ -70,11 +72,13 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen>
     final results = await Future.wait([
       _database.getBookmarks(widget.bookId),
       _database.getHighlights(widget.bookId),
+      _database.getNotes(widget.bookId),
     ]);
     if (!mounted) return;
     setState(() {
       _bookmarks = results[0] as List<Bookmark>;
       _highlights = results[1] as List<Highlight>;
+      _notes = results[2] as List<Note>;
     });
   }
 
@@ -179,6 +183,89 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen>
     );
   }
 
+  Future<void> _editNote(Note? note, {int? defaultPage}) async {
+    final controller = TextEditingController(text: note?.content ?? '');
+    var linkedToPage = note?.pageNumber != null || defaultPage != null;
+    final draft = await showDialog<NoteDraft>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title:
+              Text(note == null ? context.l10n.newNote : context.l10n.editNote),
+          content: SizedBox(
+            width: 520,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: controller,
+                  autofocus: true,
+                  minLines: 5,
+                  maxLines: 12,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: InputDecoration(
+                    hintText: context.l10n.noteHint,
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: linkedToPage,
+                  onChanged: (value) => setDialogState(
+                    () => linkedToPage = value ?? false,
+                  ),
+                  title: Text(context.l10n.linkNoteToPage),
+                  subtitle: Text(
+                    context.l10n.pageNumberLabel(defaultPage ?? _currentPage),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(context.l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(
+                NoteDraft(
+                  controller.text,
+                  linkedToPage ? (note?.pageNumber ?? defaultPage) : null,
+                ),
+              ),
+              child: Text(context.l10n.save),
+            ),
+          ],
+        ),
+      ),
+    );
+    controller.dispose();
+    if (draft == null || draft.content.trim().isEmpty) return;
+    final now = DateTime.now();
+    if (note == null) {
+      await _database.addNote(
+        NotesCompanion.insert(
+          bookId: widget.bookId,
+          pageNumber: drift.Value(draft.pageNumber),
+          content: draft.content,
+          createdAt: drift.Value(now),
+          modifiedAt: drift.Value(now),
+        ),
+      );
+    } else {
+      await _database.updateNote(
+        note.id,
+        NotesCompanion(
+          content: drift.Value(draft.content),
+          pageNumber: drift.Value(draft.pageNumber),
+          modifiedAt: drift.Value(now),
+        ),
+      );
+    }
+    await _loadAnnotations();
+  }
+
   Future<void> _showAnnotations() async {
     await showModalBottomSheet<void>(
       context: context,
@@ -186,11 +273,16 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen>
       builder: (context) => AnnotationsSheet(
         bookmarks: _bookmarks,
         highlights: _highlights,
+        notes: _notes,
         onBookmarkTap: (page) {
           Navigator.of(context).pop();
           unawaited(_goToPage(page));
         },
         onHighlightTap: (page) {
+          Navigator.of(context).pop();
+          unawaited(_goToPage(page));
+        },
+        onNoteTap: (page) {
           Navigator.of(context).pop();
           unawaited(_goToPage(page));
         },
@@ -209,6 +301,11 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen>
         },
         onDeleteHighlight: (id) async {
           await _database.deleteHighlight(id);
+          await _loadAnnotations();
+        },
+        onEditNote: (note) => _editNote(note),
+        onDeleteNote: (id) async {
+          await _database.deleteNote(id);
           await _loadAnnotations();
         },
       ),
@@ -487,6 +584,12 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen>
                     tooltip: context.l10n.annotations,
                     onPressed: _showAnnotations,
                     icon: const Icon(Icons.menu_book, color: Colors.white),
+                  ),
+                  IconButton(
+                    tooltip: context.l10n.newNote,
+                    onPressed: () => _editNote(null, defaultPage: _currentPage),
+                    icon: const Icon(Icons.note_add_outlined,
+                        color: Colors.white),
                   ),
                 ],
               ),

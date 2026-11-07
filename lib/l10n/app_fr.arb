@@ -128,4 +128,19 @@
   ,"noBookmarks": "Aucun signet enregistré."
   ,"noHighlights": "Aucun surlignage enregistré."
   ,"edit": "Modifier"
+  ,"notes": "Notes"
+  ,"newNote": "Nouvelle note"
+  ,"editNote": "Modifier la note"
+  ,"noteHint": "Écrivez vos réflexions..."
+  ,"linkNoteToPage": "Lier la note à cette page"
+  ,"generalNote": "Note générale"
+  ,"searchNotes": "Rechercher dans les notes"
+  ,"noNotes": "Aucune note pour le moment."
+  ,"noMatchingNotes": "Aucune note ne correspond à la recherche."
+  ,"noteUpdatedAt": "Modifiée le {date}"
+  ,"@noteUpdatedAt": {
+    "placeholders": {
+      "date": {"type": "String"}
+    }
+  }
 }

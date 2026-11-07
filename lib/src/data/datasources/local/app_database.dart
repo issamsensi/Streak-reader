@@ -7,14 +7,14 @@ import 'tables/reading_sessions_table.dart';
 
 part 'app_database.g.dart';
 
-@DriftDatabase(tables: [Books, ReadingSessions, Bookmarks, Highlights])
+@DriftDatabase(tables: [Books, ReadingSessions, Bookmarks, Highlights, Notes])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(connection.openConnection());
 
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -33,6 +33,9 @@ class AppDatabase extends _$AppDatabase {
           if (from < 3) {
             await m.createTable(bookmarks);
             await m.createTable(highlights);
+          }
+          if (from < 4) {
+            await m.createTable(notes);
           }
         },
       );
@@ -53,6 +56,7 @@ class AppDatabase extends _$AppDatabase {
           .go();
       await (delete(bookmarks)..where((tbl) => tbl.bookId.equals(id))).go();
       await (delete(highlights)..where((tbl) => tbl.bookId.equals(id))).go();
+      await (delete(notes)..where((tbl) => tbl.bookId.equals(id))).go();
       return (delete(books)..where((tbl) => tbl.id.equals(id))).go();
     });
   }
@@ -162,4 +166,28 @@ class AppDatabase extends _$AppDatabase {
 
   Future<int> deleteHighlight(int id) =>
       (delete(highlights)..where((tbl) => tbl.id.equals(id))).go();
+
+  // Personal notes
+  Future<List<Note>> getNotes(int bookId, {String query = ''}) {
+    final normalizedQuery = query.trim();
+    final statement = select(notes)
+      ..where((tbl) => tbl.bookId.equals(bookId))
+      ..orderBy([(tbl) => OrderingTerm.desc(tbl.modifiedAt)]);
+    if (normalizedQuery.isNotEmpty) {
+      statement.where(
+        (tbl) => tbl.content.like('%$normalizedQuery%'),
+      );
+    }
+    return statement.get();
+  }
+
+  Future<int> addNote(NotesCompanion note) => into(notes).insert(note);
+
+  Future<bool> updateNote(int id, NotesCompanion note) =>
+      (update(notes)..where((tbl) => tbl.id.equals(id)))
+          .write(note)
+          .then((count) => count > 0);
+
+  Future<int> deleteNote(int id) =>
+      (delete(notes)..where((tbl) => tbl.id.equals(id))).go();
 }

@@ -831,6 +831,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Edit'**
   String get edit;
+
+  /// No description provided for @notes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get notes;
+
+  /// No description provided for @newNote.
+  ///
+  /// In en, this message translates to:
+  /// **'New note'**
+  String get newNote;
+
+  /// No description provided for @editNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit note'**
+  String get editNote;
+
+  /// No description provided for @noteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Write your thoughts...'**
+  String get noteHint;
+
+  /// No description provided for @linkNoteToPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Link note to this page'**
+  String get linkNoteToPage;
+
+  /// No description provided for @generalNote.
+  ///
+  /// In en, this message translates to:
+  /// **'General note'**
+  String get generalNote;
+
+  /// No description provided for @searchNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Search notes'**
+  String get searchNotes;
+
+  /// No description provided for @noNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'No notes yet.'**
+  String get noNotes;
+
+  /// No description provided for @noMatchingNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'No notes match your search.'**
+  String get noMatchingNotes;
+
+  /// No description provided for @noteUpdatedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated {date}'**
+  String noteUpdatedAt(String date);
 }
 
 class _AppLocalizationsDelegate

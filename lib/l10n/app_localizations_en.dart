@@ -400,4 +400,36 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get edit => 'Edit';
+
+  @override
+  String get notes => 'Notes';
+
+  @override
+  String get newNote => 'New note';
+
+  @override
+  String get editNote => 'Edit note';
+
+  @override
+  String get noteHint => 'Write your thoughts...';
+
+  @override
+  String get linkNoteToPage => 'Link note to this page';
+
+  @override
+  String get generalNote => 'General note';
+
+  @override
+  String get searchNotes => 'Search notes';
+
+  @override
+  String get noNotes => 'No notes yet.';
+
+  @override
+  String get noMatchingNotes => 'No notes match your search.';
+
+  @override
+  String noteUpdatedAt(String date) {
+    return 'Updated $date';
+  }
 }

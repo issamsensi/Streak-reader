@@ -190,4 +190,19 @@
   ,"noBookmarks": "No bookmarks saved."
   ,"noHighlights": "No highlights saved."
   ,"edit": "Edit"
+  ,"notes": "Notes"
+  ,"newNote": "New note"
+  ,"editNote": "Edit note"
+  ,"noteHint": "Write your thoughts..."
+  ,"linkNoteToPage": "Link note to this page"
+  ,"generalNote": "General note"
+  ,"searchNotes": "Search notes"
+  ,"noNotes": "No notes yet."
+  ,"noMatchingNotes": "No notes match your search."
+  ,"noteUpdatedAt": "Updated {date}"
+  ,"@noteUpdatedAt": {
+    "placeholders": {
+      "date": {"type": "String"}
+    }
+  }
 }

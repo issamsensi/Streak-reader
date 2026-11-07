@@ -22,3 +22,12 @@ class Highlights extends Table {
   IntColumn get colorValue => integer()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
+
+class Notes extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get bookId => integer()();
+  IntColumn get pageNumber => integer().nullable()();
+  TextColumn get content => text()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get modifiedAt => dateTime().withDefault(currentDateAndTime)();
+}

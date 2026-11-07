@@ -128,4 +128,19 @@
   ,"noBookmarks": "لا توجد إشارات مرجعية محفوظة."
   ,"noHighlights": "لا توجد نصوص مميزة محفوظة."
   ,"edit": "تعديل"
+  ,"notes": "الملاحظات"
+  ,"newNote": "ملاحظة جديدة"
+  ,"editNote": "تعديل الملاحظة"
+  ,"noteHint": "اكتب أفكارك..."
+  ,"linkNoteToPage": "ربط الملاحظة بهذه الصفحة"
+  ,"generalNote": "ملاحظة عامة"
+  ,"searchNotes": "البحث في الملاحظات"
+  ,"noNotes": "لا توجد ملاحظات بعد."
+  ,"noMatchingNotes": "لا توجد ملاحظات مطابقة للبحث."
+  ,"noteUpdatedAt": "آخر تعديل: {date}"
+  ,"@noteUpdatedAt": {
+    "placeholders": {
+      "date": {"type": "String"}
+    }
+  }
 }
