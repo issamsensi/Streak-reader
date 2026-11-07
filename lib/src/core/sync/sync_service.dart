@@ -12,15 +12,20 @@ class SyncService {
   final AppDatabase database;
   SupabaseClient get _client => Supabase.instance.client;
 
+  static bool _initialized = false;
+
   static Future<void> initialize() async {
     if (!SyncConfig.isConfigured) return;
     await Supabase.initialize(
       url: SyncConfig.url,
       publishableKey: SyncConfig.anonKey,
     );
+    _initialized = true;
   }
 
-  bool get isAvailable => SyncConfig.isConfigured;
+  /// Configured *and* initialized. Accessing [Supabase.instance] before
+  /// [initialize] throws, so consumers must gate on this, not config alone.
+  bool get isAvailable => SyncConfig.isConfigured && _initialized;
   User? get currentUser => isAvailable ? _client.auth.currentUser : null;
 
   Future<bool> signInWithGoogle() async {
