@@ -14,6 +14,7 @@ import '../providers/reading_session_provider.dart';
 import 'session_controls.dart';
 import 'annotations_sheet.dart';
 import 'note_draft.dart';
+import '../../assistant/presentation/book_assistant_screen.dart';
 
 class PdfReaderScreen extends ConsumerStatefulWidget {
   final int bookId;
@@ -571,6 +572,21 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen>
               child: Row(
                 children: [
                   IconButton(
+                    tooltip: 'Book assistant',
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => BookAssistantScreen(
+                          bookTitle: widget.bookTitle,
+                          notes: _notes.isEmpty
+                              ? null
+                              : _notes.map((note) => note.content).join('\n'),
+                        ),
+                      ),
+                    ),
+                    icon: const Icon(Icons.auto_awesome_rounded,
+                        color: Colors.white),
+                  ),
+                  IconButton(
                     tooltip: context.l10n.bookmark,
                     onPressed: _toggleBookmark,
                     icon: Icon(
@@ -600,10 +616,32 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen>
               left: 16,
               right: 16,
               top: 16,
-              child: FilledButton.icon(
-                onPressed: _saveSelectionHighlight,
-                icon: const Icon(Icons.highlight),
-                label: Text(context.l10n.saveHighlight),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: _saveSelectionHighlight,
+                      icon: const Icon(Icons.highlight),
+                      label: Text(context.l10n.saveHighlight),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton.filled(
+                    tooltip: 'Ask assistant about selection',
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => BookAssistantScreen(
+                          bookTitle: widget.bookTitle,
+                          selectedText: _selection?.text,
+                          notes: _notes.isEmpty
+                              ? null
+                              : _notes.map((note) => note.content).join('\n'),
+                        ),
+                      ),
+                    ),
+                    icon: const Icon(Icons.auto_awesome_rounded),
+                  ),
+                ],
               ),
             ),
           if (_sessionController != null && _sessionReady)
