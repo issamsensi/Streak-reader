@@ -183,6 +183,60 @@ class AppLocalizationsFr extends AppLocalizations {
   String get bookDeleted => 'Livre supprimé.';
 
   @override
+  String get currentlyReading => 'En cours de lecture';
+
+  @override
+  String get wantToRead => 'À lire';
+
+  @override
+  String get paused => 'En pause';
+
+  @override
+  String get abandoned => 'Abandonné';
+
+  @override
+  String get searchBooks => 'Rechercher des livres';
+
+  @override
+  String get allBooks => 'Tous les livres';
+
+  @override
+  String get sortRecent => 'Ajoutés récemment';
+
+  @override
+  String get sortTitle => 'Titre';
+
+  @override
+  String get sortProgress => 'Progression';
+
+  @override
+  String get newCollection => 'Nouvelle collection';
+
+  @override
+  String get collectionName => 'Nom de la collection';
+
+  @override
+  String get authorOptional => 'Auteur (facultatif)';
+
+  @override
+  String get totalPagesOptional => 'Pages totales (facultatif)';
+
+  @override
+  String get bookDetailsOptional => 'Détails supplémentaires';
+
+  @override
+  String get search => 'Rechercher';
+
+  @override
+  String get clear => 'Effacer';
+
+  @override
+  String get collections => 'Collections';
+
+  @override
+  String get collectionDescription => 'Description (facultatif)';
+
+  @override
   String get titleRequired => 'Veuillez saisir un titre de livre.';
 
   @override
@@ -333,9 +387,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get finishReading => 'Terminer la session';
 
   @override
-  String get currentlyReading => 'En cours de lecture';
-
-  @override
   String get averageDailyReading => 'Lecture quotidienne moyenne';
 
   @override
@@ -451,9 +502,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get searchJournal => 'Rechercher dans le journal';
-
-  @override
-  String get allBooks => 'Tous les livres';
 
   @override
   String get emptyJournal => 'Vos réflexions de lecture apparaîtront ici.';

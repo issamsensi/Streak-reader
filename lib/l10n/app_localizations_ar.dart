@@ -181,6 +181,60 @@ class AppLocalizationsAr extends AppLocalizations {
   String get bookDeleted => 'تم حذف الكتاب.';
 
   @override
+  String get currentlyReading => 'تقرأ حالياً';
+
+  @override
+  String get wantToRead => 'أريد قراءته';
+
+  @override
+  String get paused => 'متوقف مؤقتاً';
+
+  @override
+  String get abandoned => 'متروك';
+
+  @override
+  String get searchBooks => 'البحث في الكتب';
+
+  @override
+  String get allBooks => 'كل الكتب';
+
+  @override
+  String get sortRecent => 'المضافة حديثاً';
+
+  @override
+  String get sortTitle => 'العنوان';
+
+  @override
+  String get sortProgress => 'التقدم';
+
+  @override
+  String get newCollection => 'مجموعة جديدة';
+
+  @override
+  String get collectionName => 'اسم المجموعة';
+
+  @override
+  String get authorOptional => 'المؤلف (اختياري)';
+
+  @override
+  String get totalPagesOptional => 'إجمالي الصفحات (اختياري)';
+
+  @override
+  String get bookDetailsOptional => 'تفاصيل إضافية للكتاب';
+
+  @override
+  String get search => 'بحث';
+
+  @override
+  String get clear => 'مسح';
+
+  @override
+  String get collections => 'المجموعات';
+
+  @override
+  String get collectionDescription => 'الوصف (اختياري)';
+
+  @override
   String get titleRequired => 'يرجى إدخال عنوان الكتاب.';
 
   @override
@@ -329,9 +383,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get finishReading => 'إنهاء الجلسة';
 
   @override
-  String get currentlyReading => 'تقرأ حالياً';
-
-  @override
   String get averageDailyReading => 'متوسط القراءة اليومية';
 
   @override
@@ -446,9 +497,6 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get searchJournal => 'البحث في اليوميات';
-
-  @override
-  String get allBooks => 'كل الكتب';
 
   @override
   String get emptyJournal => 'ستظهر تأملاتك القرائية هنا.';

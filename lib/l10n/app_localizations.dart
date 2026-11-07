@@ -418,6 +418,114 @@ abstract class AppLocalizations {
   /// **'Book deleted.'**
   String get bookDeleted;
 
+  /// No description provided for @currentlyReading.
+  ///
+  /// In en, this message translates to:
+  /// **'Currently reading'**
+  String get currentlyReading;
+
+  /// No description provided for @wantToRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Want to read'**
+  String get wantToRead;
+
+  /// No description provided for @paused.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get paused;
+
+  /// No description provided for @abandoned.
+  ///
+  /// In en, this message translates to:
+  /// **'Abandoned'**
+  String get abandoned;
+
+  /// No description provided for @searchBooks.
+  ///
+  /// In en, this message translates to:
+  /// **'Search books'**
+  String get searchBooks;
+
+  /// No description provided for @allBooks.
+  ///
+  /// In en, this message translates to:
+  /// **'All books'**
+  String get allBooks;
+
+  /// No description provided for @sortRecent.
+  ///
+  /// In en, this message translates to:
+  /// **'Recently added'**
+  String get sortRecent;
+
+  /// No description provided for @sortTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get sortTitle;
+
+  /// No description provided for @sortProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Progress'**
+  String get sortProgress;
+
+  /// No description provided for @newCollection.
+  ///
+  /// In en, this message translates to:
+  /// **'New collection'**
+  String get newCollection;
+
+  /// No description provided for @collectionName.
+  ///
+  /// In en, this message translates to:
+  /// **'Collection name'**
+  String get collectionName;
+
+  /// No description provided for @authorOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Author (optional)'**
+  String get authorOptional;
+
+  /// No description provided for @totalPagesOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Total pages (optional)'**
+  String get totalPagesOptional;
+
+  /// No description provided for @bookDetailsOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'More book details'**
+  String get bookDetailsOptional;
+
+  /// No description provided for @search.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get search;
+
+  /// No description provided for @clear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get clear;
+
+  /// No description provided for @collections.
+  ///
+  /// In en, this message translates to:
+  /// **'Collections'**
+  String get collections;
+
+  /// No description provided for @collectionDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Description (optional)'**
+  String get collectionDescription;
+
   /// No description provided for @titleRequired.
   ///
   /// In en, this message translates to:
@@ -688,12 +796,6 @@ abstract class AppLocalizations {
   /// **'Finish session'**
   String get finishReading;
 
-  /// No description provided for @currentlyReading.
-  ///
-  /// In en, this message translates to:
-  /// **'Currently reading'**
-  String get currentlyReading;
-
   /// No description provided for @averageDailyReading.
   ///
   /// In en, this message translates to:
@@ -921,12 +1023,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Search journal'**
   String get searchJournal;
-
-  /// No description provided for @allBooks.
-  ///
-  /// In en, this message translates to:
-  /// **'All books'**
-  String get allBooks;
 
   /// No description provided for @emptyJournal.
   ///

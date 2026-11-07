@@ -22,6 +22,17 @@ class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
   late final GeneratedColumn<String> title = GeneratedColumn<String>(
       'title', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _authorMeta = const VerificationMeta('author');
+  @override
+  late final GeneratedColumn<String> author = GeneratedColumn<String>(
+      'author', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _totalPagesMeta =
+      const VerificationMeta('totalPages');
+  @override
+  late final GeneratedColumn<int> totalPages = GeneratedColumn<int>(
+      'total_pages', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
   static const VerificationMeta _filePathMeta =
       const VerificationMeta('filePath');
   @override
@@ -58,6 +69,14 @@ class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
       defaultConstraints: GeneratedColumn.constraintIsAlways(
           'CHECK ("is_completed" IN (0, 1))'),
       defaultValue: const Constant(false));
+  static const VerificationMeta _readingStatusMeta =
+      const VerificationMeta('readingStatus');
+  @override
+  late final GeneratedColumn<String> readingStatus = GeneratedColumn<String>(
+      'reading_status', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('want_to_read'));
   static const VerificationMeta _createdAtMeta =
       const VerificationMeta('createdAt');
   @override
@@ -70,11 +89,14 @@ class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
   List<GeneratedColumn> get $columns => [
         id,
         title,
+        author,
+        totalPages,
         filePath,
         fileName,
         fileSize,
         lastPage,
         isCompleted,
+        readingStatus,
         createdAt
       ];
   @override
@@ -95,6 +117,16 @@ class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
           _titleMeta, title.isAcceptableOrUnknown(data['title']!, _titleMeta));
     } else if (isInserting) {
       context.missing(_titleMeta);
+    }
+    if (data.containsKey('author')) {
+      context.handle(_authorMeta,
+          author.isAcceptableOrUnknown(data['author']!, _authorMeta));
+    }
+    if (data.containsKey('total_pages')) {
+      context.handle(
+          _totalPagesMeta,
+          totalPages.isAcceptableOrUnknown(
+              data['total_pages']!, _totalPagesMeta));
     }
     if (data.containsKey('file_path')) {
       context.handle(_filePathMeta,
@@ -118,6 +150,12 @@ class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
           isCompleted.isAcceptableOrUnknown(
               data['is_completed']!, _isCompletedMeta));
     }
+    if (data.containsKey('reading_status')) {
+      context.handle(
+          _readingStatusMeta,
+          readingStatus.isAcceptableOrUnknown(
+              data['reading_status']!, _readingStatusMeta));
+    }
     if (data.containsKey('created_at')) {
       context.handle(_createdAtMeta,
           createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
@@ -135,6 +173,10 @@ class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
           .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
       title: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}title'])!,
+      author: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}author']),
+      totalPages: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}total_pages']),
       filePath: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}file_path']),
       fileName: attachedDatabase.typeMapping
@@ -145,6 +187,8 @@ class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
           .read(DriftSqlType.int, data['${effectivePrefix}last_page'])!,
       isCompleted: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_completed'])!,
+      readingStatus: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}reading_status'])!,
       createdAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
     );
@@ -159,26 +203,38 @@ class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
 class Book extends DataClass implements Insertable<Book> {
   final int id;
   final String title;
+  final String? author;
+  final int? totalPages;
   final String? filePath;
   final String? fileName;
   final int? fileSize;
   final int lastPage;
   final bool isCompleted;
+  final String readingStatus;
   final DateTime createdAt;
   const Book(
       {required this.id,
       required this.title,
+      this.author,
+      this.totalPages,
       this.filePath,
       this.fileName,
       this.fileSize,
       required this.lastPage,
       required this.isCompleted,
+      this.readingStatus = 'want_to_read',
       required this.createdAt});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['title'] = Variable<String>(title);
+    if (!nullToAbsent || author != null) {
+      map['author'] = Variable<String>(author);
+    }
+    if (!nullToAbsent || totalPages != null) {
+      map['total_pages'] = Variable<int>(totalPages);
+    }
     if (!nullToAbsent || filePath != null) {
       map['file_path'] = Variable<String>(filePath);
     }
@@ -190,6 +246,7 @@ class Book extends DataClass implements Insertable<Book> {
     }
     map['last_page'] = Variable<int>(lastPage);
     map['is_completed'] = Variable<bool>(isCompleted);
+    map['reading_status'] = Variable<String>(readingStatus);
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -198,6 +255,11 @@ class Book extends DataClass implements Insertable<Book> {
     return BooksCompanion(
       id: Value(id),
       title: Value(title),
+      author:
+          author == null && nullToAbsent ? const Value.absent() : Value(author),
+      totalPages: totalPages == null && nullToAbsent
+          ? const Value.absent()
+          : Value(totalPages),
       filePath: filePath == null && nullToAbsent
           ? const Value.absent()
           : Value(filePath),
@@ -209,6 +271,7 @@ class Book extends DataClass implements Insertable<Book> {
           : Value(fileSize),
       lastPage: Value(lastPage),
       isCompleted: Value(isCompleted),
+      readingStatus: Value(readingStatus),
       createdAt: Value(createdAt),
     );
   }
@@ -219,11 +282,14 @@ class Book extends DataClass implements Insertable<Book> {
     return Book(
       id: serializer.fromJson<int>(json['id']),
       title: serializer.fromJson<String>(json['title']),
+      author: serializer.fromJson<String?>(json['author']),
+      totalPages: serializer.fromJson<int?>(json['totalPages']),
       filePath: serializer.fromJson<String?>(json['filePath']),
       fileName: serializer.fromJson<String?>(json['fileName']),
       fileSize: serializer.fromJson<int?>(json['fileSize']),
       lastPage: serializer.fromJson<int>(json['lastPage']),
       isCompleted: serializer.fromJson<bool>(json['isCompleted']),
+      readingStatus: serializer.fromJson<String>(json['readingStatus']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -233,11 +299,14 @@ class Book extends DataClass implements Insertable<Book> {
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'title': serializer.toJson<String>(title),
+      'author': serializer.toJson<String?>(author),
+      'totalPages': serializer.toJson<int?>(totalPages),
       'filePath': serializer.toJson<String?>(filePath),
       'fileName': serializer.toJson<String?>(fileName),
       'fileSize': serializer.toJson<int?>(fileSize),
       'lastPage': serializer.toJson<int>(lastPage),
       'isCompleted': serializer.toJson<bool>(isCompleted),
+      'readingStatus': serializer.toJson<String>(readingStatus),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -245,32 +314,44 @@ class Book extends DataClass implements Insertable<Book> {
   Book copyWith(
           {int? id,
           String? title,
+          Value<String?> author = const Value.absent(),
+          Value<int?> totalPages = const Value.absent(),
           Value<String?> filePath = const Value.absent(),
           Value<String?> fileName = const Value.absent(),
           Value<int?> fileSize = const Value.absent(),
           int? lastPage,
           bool? isCompleted,
+          String? readingStatus,
           DateTime? createdAt}) =>
       Book(
         id: id ?? this.id,
         title: title ?? this.title,
+        author: author.present ? author.value : this.author,
+        totalPages: totalPages.present ? totalPages.value : this.totalPages,
         filePath: filePath.present ? filePath.value : this.filePath,
         fileName: fileName.present ? fileName.value : this.fileName,
         fileSize: fileSize.present ? fileSize.value : this.fileSize,
         lastPage: lastPage ?? this.lastPage,
         isCompleted: isCompleted ?? this.isCompleted,
+        readingStatus: readingStatus ?? this.readingStatus,
         createdAt: createdAt ?? this.createdAt,
       );
   Book copyWithCompanion(BooksCompanion data) {
     return Book(
       id: data.id.present ? data.id.value : this.id,
       title: data.title.present ? data.title.value : this.title,
+      author: data.author.present ? data.author.value : this.author,
+      totalPages:
+          data.totalPages.present ? data.totalPages.value : this.totalPages,
       filePath: data.filePath.present ? data.filePath.value : this.filePath,
       fileName: data.fileName.present ? data.fileName.value : this.fileName,
       fileSize: data.fileSize.present ? data.fileSize.value : this.fileSize,
       lastPage: data.lastPage.present ? data.lastPage.value : this.lastPage,
       isCompleted:
           data.isCompleted.present ? data.isCompleted.value : this.isCompleted,
+      readingStatus: data.readingStatus.present
+          ? data.readingStatus.value
+          : this.readingStatus,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -280,80 +361,101 @@ class Book extends DataClass implements Insertable<Book> {
     return (StringBuffer('Book(')
           ..write('id: $id, ')
           ..write('title: $title, ')
+          ..write('author: $author, ')
+          ..write('totalPages: $totalPages, ')
           ..write('filePath: $filePath, ')
           ..write('fileName: $fileName, ')
           ..write('fileSize: $fileSize, ')
           ..write('lastPage: $lastPage, ')
           ..write('isCompleted: $isCompleted, ')
+          ..write('readingStatus: $readingStatus, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, title, filePath, fileName, fileSize,
-      lastPage, isCompleted, createdAt);
+  int get hashCode => Object.hash(id, title, author, totalPages, filePath,
+      fileName, fileSize, lastPage, isCompleted, readingStatus, createdAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is Book &&
           other.id == this.id &&
           other.title == this.title &&
+          other.author == this.author &&
+          other.totalPages == this.totalPages &&
           other.filePath == this.filePath &&
           other.fileName == this.fileName &&
           other.fileSize == this.fileSize &&
           other.lastPage == this.lastPage &&
           other.isCompleted == this.isCompleted &&
+          other.readingStatus == this.readingStatus &&
           other.createdAt == this.createdAt);
 }
 
 class BooksCompanion extends UpdateCompanion<Book> {
   final Value<int> id;
   final Value<String> title;
+  final Value<String?> author;
+  final Value<int?> totalPages;
   final Value<String?> filePath;
   final Value<String?> fileName;
   final Value<int?> fileSize;
   final Value<int> lastPage;
   final Value<bool> isCompleted;
+  final Value<String> readingStatus;
   final Value<DateTime> createdAt;
   const BooksCompanion({
     this.id = const Value.absent(),
     this.title = const Value.absent(),
+    this.author = const Value.absent(),
+    this.totalPages = const Value.absent(),
     this.filePath = const Value.absent(),
     this.fileName = const Value.absent(),
     this.fileSize = const Value.absent(),
     this.lastPage = const Value.absent(),
     this.isCompleted = const Value.absent(),
+    this.readingStatus = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
   BooksCompanion.insert({
     this.id = const Value.absent(),
     required String title,
+    this.author = const Value.absent(),
+    this.totalPages = const Value.absent(),
     this.filePath = const Value.absent(),
     this.fileName = const Value.absent(),
     this.fileSize = const Value.absent(),
     this.lastPage = const Value.absent(),
     this.isCompleted = const Value.absent(),
+    this.readingStatus = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : title = Value(title);
   static Insertable<Book> custom({
     Expression<int>? id,
     Expression<String>? title,
+    Expression<String>? author,
+    Expression<int>? totalPages,
     Expression<String>? filePath,
     Expression<String>? fileName,
     Expression<int>? fileSize,
     Expression<int>? lastPage,
     Expression<bool>? isCompleted,
+    Expression<String>? readingStatus,
     Expression<DateTime>? createdAt,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (title != null) 'title': title,
+      if (author != null) 'author': author,
+      if (totalPages != null) 'total_pages': totalPages,
       if (filePath != null) 'file_path': filePath,
       if (fileName != null) 'file_name': fileName,
       if (fileSize != null) 'file_size': fileSize,
       if (lastPage != null) 'last_page': lastPage,
       if (isCompleted != null) 'is_completed': isCompleted,
+      if (readingStatus != null) 'reading_status': readingStatus,
       if (createdAt != null) 'created_at': createdAt,
     });
   }
@@ -361,20 +463,26 @@ class BooksCompanion extends UpdateCompanion<Book> {
   BooksCompanion copyWith(
       {Value<int>? id,
       Value<String>? title,
+      Value<String?>? author,
+      Value<int?>? totalPages,
       Value<String?>? filePath,
       Value<String?>? fileName,
       Value<int?>? fileSize,
       Value<int>? lastPage,
       Value<bool>? isCompleted,
+      Value<String>? readingStatus,
       Value<DateTime>? createdAt}) {
     return BooksCompanion(
       id: id ?? this.id,
       title: title ?? this.title,
+      author: author ?? this.author,
+      totalPages: totalPages ?? this.totalPages,
       filePath: filePath ?? this.filePath,
       fileName: fileName ?? this.fileName,
       fileSize: fileSize ?? this.fileSize,
       lastPage: lastPage ?? this.lastPage,
       isCompleted: isCompleted ?? this.isCompleted,
+      readingStatus: readingStatus ?? this.readingStatus,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -387,6 +495,12 @@ class BooksCompanion extends UpdateCompanion<Book> {
     }
     if (title.present) {
       map['title'] = Variable<String>(title.value);
+    }
+    if (author.present) {
+      map['author'] = Variable<String>(author.value);
+    }
+    if (totalPages.present) {
+      map['total_pages'] = Variable<int>(totalPages.value);
     }
     if (filePath.present) {
       map['file_path'] = Variable<String>(filePath.value);
@@ -403,6 +517,9 @@ class BooksCompanion extends UpdateCompanion<Book> {
     if (isCompleted.present) {
       map['is_completed'] = Variable<bool>(isCompleted.value);
     }
+    if (readingStatus.present) {
+      map['reading_status'] = Variable<String>(readingStatus.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -414,11 +531,14 @@ class BooksCompanion extends UpdateCompanion<Book> {
     return (StringBuffer('BooksCompanion(')
           ..write('id: $id, ')
           ..write('title: $title, ')
+          ..write('author: $author, ')
+          ..write('totalPages: $totalPages, ')
           ..write('filePath: $filePath, ')
           ..write('fileName: $fileName, ')
           ..write('fileSize: $fileSize, ')
           ..write('lastPage: $lastPage, ')
           ..write('isCompleted: $isCompleted, ')
+          ..write('readingStatus: $readingStatus, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -2547,6 +2667,459 @@ class JournalEntriesCompanion extends UpdateCompanion<JournalEntry> {
   }
 }
 
+class $CollectionsTable extends Collections
+    with TableInfo<$CollectionsTable, Collection> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CollectionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+      'id', aliasedName, false,
+      hasAutoIncrement: true,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+      'name', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _descriptionMeta =
+      const VerificationMeta('description');
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+      'description', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  @override
+  List<GeneratedColumn> get $columns => [id, name, description, createdAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'collections';
+  @override
+  VerificationContext validateIntegrity(Insertable<Collection> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+          _nameMeta, name.isAcceptableOrUnknown(data['name']!, _nameMeta));
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+          _descriptionMeta,
+          description.isAcceptableOrUnknown(
+              data['description']!, _descriptionMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Collection map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Collection(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      name: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}name'])!,
+      description: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}description'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+    );
+  }
+
+  @override
+  $CollectionsTable createAlias(String alias) {
+    return $CollectionsTable(attachedDatabase, alias);
+  }
+}
+
+class Collection extends DataClass implements Insertable<Collection> {
+  final int id;
+  final String name;
+  final String description;
+  final DateTime createdAt;
+  const Collection(
+      {required this.id,
+      required this.name,
+      required this.description,
+      required this.createdAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['name'] = Variable<String>(name);
+    map['description'] = Variable<String>(description);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  CollectionsCompanion toCompanion(bool nullToAbsent) {
+    return CollectionsCompanion(
+      id: Value(id),
+      name: Value(name),
+      description: Value(description),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory Collection.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Collection(
+      id: serializer.fromJson<int>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      description: serializer.fromJson<String>(json['description']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'name': serializer.toJson<String>(name),
+      'description': serializer.toJson<String>(description),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  Collection copyWith(
+          {int? id, String? name, String? description, DateTime? createdAt}) =>
+      Collection(
+        id: id ?? this.id,
+        name: name ?? this.name,
+        description: description ?? this.description,
+        createdAt: createdAt ?? this.createdAt,
+      );
+  Collection copyWithCompanion(CollectionsCompanion data) {
+    return Collection(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      description:
+          data.description.present ? data.description.value : this.description,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Collection(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('description: $description, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, name, description, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Collection &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.description == this.description &&
+          other.createdAt == this.createdAt);
+}
+
+class CollectionsCompanion extends UpdateCompanion<Collection> {
+  final Value<int> id;
+  final Value<String> name;
+  final Value<String> description;
+  final Value<DateTime> createdAt;
+  const CollectionsCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.description = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  CollectionsCompanion.insert({
+    this.id = const Value.absent(),
+    required String name,
+    this.description = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  }) : name = Value(name);
+  static Insertable<Collection> custom({
+    Expression<int>? id,
+    Expression<String>? name,
+    Expression<String>? description,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (description != null) 'description': description,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  CollectionsCompanion copyWith(
+      {Value<int>? id,
+      Value<String>? name,
+      Value<String>? description,
+      Value<DateTime>? createdAt}) {
+    return CollectionsCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CollectionsCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('description: $description, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $BookCollectionsTable extends BookCollections
+    with TableInfo<$BookCollectionsTable, BookCollection> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $BookCollectionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _bookIdMeta = const VerificationMeta('bookId');
+  @override
+  late final GeneratedColumn<int> bookId = GeneratedColumn<int>(
+      'book_id', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _collectionIdMeta =
+      const VerificationMeta('collectionId');
+  @override
+  late final GeneratedColumn<int> collectionId = GeneratedColumn<int>(
+      'collection_id', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns => [bookId, collectionId];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'book_collections';
+  @override
+  VerificationContext validateIntegrity(Insertable<BookCollection> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('book_id')) {
+      context.handle(_bookIdMeta,
+          bookId.isAcceptableOrUnknown(data['book_id']!, _bookIdMeta));
+    } else if (isInserting) {
+      context.missing(_bookIdMeta);
+    }
+    if (data.containsKey('collection_id')) {
+      context.handle(
+          _collectionIdMeta,
+          collectionId.isAcceptableOrUnknown(
+              data['collection_id']!, _collectionIdMeta));
+    } else if (isInserting) {
+      context.missing(_collectionIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {bookId, collectionId};
+  @override
+  BookCollection map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return BookCollection(
+      bookId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}book_id'])!,
+      collectionId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}collection_id'])!,
+    );
+  }
+
+  @override
+  $BookCollectionsTable createAlias(String alias) {
+    return $BookCollectionsTable(attachedDatabase, alias);
+  }
+}
+
+class BookCollection extends DataClass implements Insertable<BookCollection> {
+  final int bookId;
+  final int collectionId;
+  const BookCollection({required this.bookId, required this.collectionId});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['book_id'] = Variable<int>(bookId);
+    map['collection_id'] = Variable<int>(collectionId);
+    return map;
+  }
+
+  BookCollectionsCompanion toCompanion(bool nullToAbsent) {
+    return BookCollectionsCompanion(
+      bookId: Value(bookId),
+      collectionId: Value(collectionId),
+    );
+  }
+
+  factory BookCollection.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return BookCollection(
+      bookId: serializer.fromJson<int>(json['bookId']),
+      collectionId: serializer.fromJson<int>(json['collectionId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'bookId': serializer.toJson<int>(bookId),
+      'collectionId': serializer.toJson<int>(collectionId),
+    };
+  }
+
+  BookCollection copyWith({int? bookId, int? collectionId}) => BookCollection(
+        bookId: bookId ?? this.bookId,
+        collectionId: collectionId ?? this.collectionId,
+      );
+  BookCollection copyWithCompanion(BookCollectionsCompanion data) {
+    return BookCollection(
+      bookId: data.bookId.present ? data.bookId.value : this.bookId,
+      collectionId: data.collectionId.present
+          ? data.collectionId.value
+          : this.collectionId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BookCollection(')
+          ..write('bookId: $bookId, ')
+          ..write('collectionId: $collectionId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(bookId, collectionId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is BookCollection &&
+          other.bookId == this.bookId &&
+          other.collectionId == this.collectionId);
+}
+
+class BookCollectionsCompanion extends UpdateCompanion<BookCollection> {
+  final Value<int> bookId;
+  final Value<int> collectionId;
+  final Value<int> rowid;
+  const BookCollectionsCompanion({
+    this.bookId = const Value.absent(),
+    this.collectionId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  BookCollectionsCompanion.insert({
+    required int bookId,
+    required int collectionId,
+    this.rowid = const Value.absent(),
+  })  : bookId = Value(bookId),
+        collectionId = Value(collectionId);
+  static Insertable<BookCollection> custom({
+    Expression<int>? bookId,
+    Expression<int>? collectionId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (bookId != null) 'book_id': bookId,
+      if (collectionId != null) 'collection_id': collectionId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  BookCollectionsCompanion copyWith(
+      {Value<int>? bookId, Value<int>? collectionId, Value<int>? rowid}) {
+    return BookCollectionsCompanion(
+      bookId: bookId ?? this.bookId,
+      collectionId: collectionId ?? this.collectionId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (bookId.present) {
+      map['book_id'] = Variable<int>(bookId.value);
+    }
+    if (collectionId.present) {
+      map['collection_id'] = Variable<int>(collectionId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BookCollectionsCompanion(')
+          ..write('bookId: $bookId, ')
+          ..write('collectionId: $collectionId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2557,12 +3130,23 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $HighlightsTable highlights = $HighlightsTable(this);
   late final $NotesTable notes = $NotesTable(this);
   late final $JournalEntriesTable journalEntries = $JournalEntriesTable(this);
+  late final $CollectionsTable collections = $CollectionsTable(this);
+  late final $BookCollectionsTable bookCollections =
+      $BookCollectionsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities =>
-      [books, readingSessions, bookmarks, highlights, notes, journalEntries];
+  List<DatabaseSchemaEntity> get allSchemaEntities => [
+        books,
+        readingSessions,
+        bookmarks,
+        highlights,
+        notes,
+        journalEntries,
+        collections,
+        bookCollections
+      ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules(
         [
@@ -2580,21 +3164,27 @@ abstract class _$AppDatabase extends GeneratedDatabase {
 typedef $$BooksTableCreateCompanionBuilder = BooksCompanion Function({
   Value<int> id,
   required String title,
+  Value<String?> author,
+  Value<int?> totalPages,
   Value<String?> filePath,
   Value<String?> fileName,
   Value<int?> fileSize,
   Value<int> lastPage,
   Value<bool> isCompleted,
+  Value<String> readingStatus,
   Value<DateTime> createdAt,
 });
 typedef $$BooksTableUpdateCompanionBuilder = BooksCompanion Function({
   Value<int> id,
   Value<String> title,
+  Value<String?> author,
+  Value<int?> totalPages,
   Value<String?> filePath,
   Value<String?> fileName,
   Value<int?> fileSize,
   Value<int> lastPage,
   Value<bool> isCompleted,
+  Value<String> readingStatus,
   Value<DateTime> createdAt,
 });
 
@@ -2633,6 +3223,12 @@ class $$BooksTableFilterComposer extends Composer<_$AppDatabase, $BooksTable> {
   ColumnFilters<String> get title => $composableBuilder(
       column: $table.title, builder: (column) => ColumnFilters(column));
 
+  ColumnFilters<String> get author => $composableBuilder(
+      column: $table.author, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get totalPages => $composableBuilder(
+      column: $table.totalPages, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<String> get filePath => $composableBuilder(
       column: $table.filePath, builder: (column) => ColumnFilters(column));
 
@@ -2647,6 +3243,9 @@ class $$BooksTableFilterComposer extends Composer<_$AppDatabase, $BooksTable> {
 
   ColumnFilters<bool> get isCompleted => $composableBuilder(
       column: $table.isCompleted, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get readingStatus => $composableBuilder(
+      column: $table.readingStatus, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnFilters(column));
@@ -2688,6 +3287,12 @@ class $$BooksTableOrderingComposer
   ColumnOrderings<String> get title => $composableBuilder(
       column: $table.title, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get author => $composableBuilder(
+      column: $table.author, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get totalPages => $composableBuilder(
+      column: $table.totalPages, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get filePath => $composableBuilder(
       column: $table.filePath, builder: (column) => ColumnOrderings(column));
 
@@ -2702,6 +3307,10 @@ class $$BooksTableOrderingComposer
 
   ColumnOrderings<bool> get isCompleted => $composableBuilder(
       column: $table.isCompleted, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get readingStatus => $composableBuilder(
+      column: $table.readingStatus,
+      builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnOrderings(column));
@@ -2722,6 +3331,12 @@ class $$BooksTableAnnotationComposer
   GeneratedColumn<String> get title =>
       $composableBuilder(column: $table.title, builder: (column) => column);
 
+  GeneratedColumn<String> get author =>
+      $composableBuilder(column: $table.author, builder: (column) => column);
+
+  GeneratedColumn<int> get totalPages => $composableBuilder(
+      column: $table.totalPages, builder: (column) => column);
+
   GeneratedColumn<String> get filePath =>
       $composableBuilder(column: $table.filePath, builder: (column) => column);
 
@@ -2736,6 +3351,9 @@ class $$BooksTableAnnotationComposer
 
   GeneratedColumn<bool> get isCompleted => $composableBuilder(
       column: $table.isCompleted, builder: (column) => column);
+
+  GeneratedColumn<String> get readingStatus => $composableBuilder(
+      column: $table.readingStatus, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -2787,41 +3405,53 @@ class $$BooksTableTableManager extends RootTableManager<
           updateCompanionCallback: ({
             Value<int> id = const Value.absent(),
             Value<String> title = const Value.absent(),
+            Value<String?> author = const Value.absent(),
+            Value<int?> totalPages = const Value.absent(),
             Value<String?> filePath = const Value.absent(),
             Value<String?> fileName = const Value.absent(),
             Value<int?> fileSize = const Value.absent(),
             Value<int> lastPage = const Value.absent(),
             Value<bool> isCompleted = const Value.absent(),
+            Value<String> readingStatus = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
           }) =>
               BooksCompanion(
             id: id,
             title: title,
+            author: author,
+            totalPages: totalPages,
             filePath: filePath,
             fileName: fileName,
             fileSize: fileSize,
             lastPage: lastPage,
             isCompleted: isCompleted,
+            readingStatus: readingStatus,
             createdAt: createdAt,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
             required String title,
+            Value<String?> author = const Value.absent(),
+            Value<int?> totalPages = const Value.absent(),
             Value<String?> filePath = const Value.absent(),
             Value<String?> fileName = const Value.absent(),
             Value<int?> fileSize = const Value.absent(),
             Value<int> lastPage = const Value.absent(),
             Value<bool> isCompleted = const Value.absent(),
+            Value<String> readingStatus = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
           }) =>
               BooksCompanion.insert(
             id: id,
             title: title,
+            author: author,
+            totalPages: totalPages,
             filePath: filePath,
             fileName: fileName,
             fileSize: fileSize,
             lastPage: lastPage,
             isCompleted: isCompleted,
+            readingStatus: readingStatus,
             createdAt: createdAt,
           ),
           withReferenceMapper: (p0) => p0
@@ -4014,6 +4644,282 @@ typedef $$JournalEntriesTableProcessedTableManager = ProcessedTableManager<
     ),
     JournalEntry,
     PrefetchHooks Function()>;
+typedef $$CollectionsTableCreateCompanionBuilder = CollectionsCompanion
+    Function({
+  Value<int> id,
+  required String name,
+  Value<String> description,
+  Value<DateTime> createdAt,
+});
+typedef $$CollectionsTableUpdateCompanionBuilder = CollectionsCompanion
+    Function({
+  Value<int> id,
+  Value<String> name,
+  Value<String> description,
+  Value<DateTime> createdAt,
+});
+
+class $$CollectionsTableFilterComposer
+    extends Composer<_$AppDatabase, $CollectionsTable> {
+  $$CollectionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get name => $composableBuilder(
+      column: $table.name, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get description => $composableBuilder(
+      column: $table.description, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$CollectionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CollectionsTable> {
+  $$CollectionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get name => $composableBuilder(
+      column: $table.name, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get description => $composableBuilder(
+      column: $table.description, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$CollectionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CollectionsTable> {
+  $$CollectionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get description => $composableBuilder(
+      column: $table.description, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$CollectionsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $CollectionsTable,
+    Collection,
+    $$CollectionsTableFilterComposer,
+    $$CollectionsTableOrderingComposer,
+    $$CollectionsTableAnnotationComposer,
+    $$CollectionsTableCreateCompanionBuilder,
+    $$CollectionsTableUpdateCompanionBuilder,
+    (Collection, BaseReferences<_$AppDatabase, $CollectionsTable, Collection>),
+    Collection,
+    PrefetchHooks Function()> {
+  $$CollectionsTableTableManager(_$AppDatabase db, $CollectionsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CollectionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CollectionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CollectionsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            Value<String> name = const Value.absent(),
+            Value<String> description = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+          }) =>
+              CollectionsCompanion(
+            id: id,
+            name: name,
+            description: description,
+            createdAt: createdAt,
+          ),
+          createCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            required String name,
+            Value<String> description = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+          }) =>
+              CollectionsCompanion.insert(
+            id: id,
+            name: name,
+            description: description,
+            createdAt: createdAt,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$CollectionsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $CollectionsTable,
+    Collection,
+    $$CollectionsTableFilterComposer,
+    $$CollectionsTableOrderingComposer,
+    $$CollectionsTableAnnotationComposer,
+    $$CollectionsTableCreateCompanionBuilder,
+    $$CollectionsTableUpdateCompanionBuilder,
+    (Collection, BaseReferences<_$AppDatabase, $CollectionsTable, Collection>),
+    Collection,
+    PrefetchHooks Function()>;
+typedef $$BookCollectionsTableCreateCompanionBuilder = BookCollectionsCompanion
+    Function({
+  required int bookId,
+  required int collectionId,
+  Value<int> rowid,
+});
+typedef $$BookCollectionsTableUpdateCompanionBuilder = BookCollectionsCompanion
+    Function({
+  Value<int> bookId,
+  Value<int> collectionId,
+  Value<int> rowid,
+});
+
+class $$BookCollectionsTableFilterComposer
+    extends Composer<_$AppDatabase, $BookCollectionsTable> {
+  $$BookCollectionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get bookId => $composableBuilder(
+      column: $table.bookId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get collectionId => $composableBuilder(
+      column: $table.collectionId, builder: (column) => ColumnFilters(column));
+}
+
+class $$BookCollectionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $BookCollectionsTable> {
+  $$BookCollectionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get bookId => $composableBuilder(
+      column: $table.bookId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get collectionId => $composableBuilder(
+      column: $table.collectionId,
+      builder: (column) => ColumnOrderings(column));
+}
+
+class $$BookCollectionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $BookCollectionsTable> {
+  $$BookCollectionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get bookId =>
+      $composableBuilder(column: $table.bookId, builder: (column) => column);
+
+  GeneratedColumn<int> get collectionId => $composableBuilder(
+      column: $table.collectionId, builder: (column) => column);
+}
+
+class $$BookCollectionsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $BookCollectionsTable,
+    BookCollection,
+    $$BookCollectionsTableFilterComposer,
+    $$BookCollectionsTableOrderingComposer,
+    $$BookCollectionsTableAnnotationComposer,
+    $$BookCollectionsTableCreateCompanionBuilder,
+    $$BookCollectionsTableUpdateCompanionBuilder,
+    (
+      BookCollection,
+      BaseReferences<_$AppDatabase, $BookCollectionsTable, BookCollection>
+    ),
+    BookCollection,
+    PrefetchHooks Function()> {
+  $$BookCollectionsTableTableManager(
+      _$AppDatabase db, $BookCollectionsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$BookCollectionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$BookCollectionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$BookCollectionsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<int> bookId = const Value.absent(),
+            Value<int> collectionId = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              BookCollectionsCompanion(
+            bookId: bookId,
+            collectionId: collectionId,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required int bookId,
+            required int collectionId,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              BookCollectionsCompanion.insert(
+            bookId: bookId,
+            collectionId: collectionId,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$BookCollectionsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $BookCollectionsTable,
+    BookCollection,
+    $$BookCollectionsTableFilterComposer,
+    $$BookCollectionsTableOrderingComposer,
+    $$BookCollectionsTableAnnotationComposer,
+    $$BookCollectionsTableCreateCompanionBuilder,
+    $$BookCollectionsTableUpdateCompanionBuilder,
+    (
+      BookCollection,
+      BaseReferences<_$AppDatabase, $BookCollectionsTable, BookCollection>
+    ),
+    BookCollection,
+    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -4030,4 +4936,8 @@ class $AppDatabaseManager {
       $$NotesTableTableManager(_db, _db.notes);
   $$JournalEntriesTableTableManager get journalEntries =>
       $$JournalEntriesTableTableManager(_db, _db.journalEntries);
+  $$CollectionsTableTableManager get collections =>
+      $$CollectionsTableTableManager(_db, _db.collections);
+  $$BookCollectionsTableTableManager get bookCollections =>
+      $$BookCollectionsTableTableManager(_db, _db.bookCollections);
 }

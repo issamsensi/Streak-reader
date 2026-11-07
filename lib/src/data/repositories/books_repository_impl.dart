@@ -14,12 +14,16 @@ class BooksRepositoryImpl implements BooksRepository {
   @override
   Future<int> addBook(
       {required String title,
+      String? author,
+      int? totalPages,
       String? filePath,
       String? fileName,
       int? fileSize}) {
     return db.insertBook(
       BooksCompanion.insert(
         title: title,
+        author: Value(author),
+        totalPages: Value(totalPages),
         filePath: Value(filePath),
         fileName: Value(fileName),
         fileSize: Value(fileSize),
@@ -52,9 +56,15 @@ class BooksRepositoryImpl implements BooksRepository {
 
   @override
   Future<void> markCompleted(int id, bool completed) async {
-    await (db.update(db.books)..where((tbl) => tbl.id.equals(id)))
-        .write(BooksCompanion(isCompleted: Value(completed)));
+    await db.updateBookStatus(
+      id,
+      completed ? 'completed' : 'want_to_read',
+    );
   }
+
+  @override
+  Future<void> updateStatus(int id, String status) =>
+      db.updateBookStatus(id, status);
 
   @override
   Future<void> deleteBook(int id) => db.deleteBook(id);

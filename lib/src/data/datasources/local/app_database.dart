@@ -14,7 +14,9 @@ part 'app_database.g.dart';
     Bookmarks,
     Highlights,
     Notes,
-    JournalEntries
+    JournalEntries,
+    Collections,
+    BookCollections
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -23,7 +25,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -49,6 +51,17 @@ class AppDatabase extends _$AppDatabase {
           if (from < 5) {
             await m.createTable(journalEntries);
           }
+          if (from < 6) {
+            await m.addColumn(books, books.author);
+            await m.addColumn(books, books.totalPages);
+            await m.addColumn(books, books.readingStatus);
+            await m.createTable(collections);
+            await m.createTable(bookCollections);
+            await customStatement(
+              "UPDATE books SET reading_status = 'completed' "
+              'WHERE is_completed = 1',
+            );
+          }
         },
       );
 
@@ -70,6 +83,8 @@ class AppDatabase extends _$AppDatabase {
       await (delete(highlights)..where((tbl) => tbl.bookId.equals(id))).go();
       await (delete(notes)..where((tbl) => tbl.bookId.equals(id))).go();
       await (delete(journalEntries)..where((tbl) => tbl.bookId.equals(id)))
+          .go();
+      await (delete(bookCollections)..where((tbl) => tbl.bookId.equals(id)))
           .go();
       return (delete(books)..where((tbl) => tbl.id.equals(id))).go();
     });
@@ -239,4 +254,65 @@ class AppDatabase extends _$AppDatabase {
 
   Future<int> deleteJournalEntry(int id) =>
       (delete(journalEntries)..where((tbl) => tbl.id.equals(id))).go();
+
+  Future<void> updateBookStatus(int id, String status) async {
+    await (update(books)..where((tbl) => tbl.id.equals(id))).write(
+      BooksCompanion(
+        readingStatus: Value(status),
+        isCompleted: Value(status == 'completed'),
+      ),
+    );
+  }
+
+  Future<List<Collection>> getCollections() =>
+      (select(collections)..orderBy([(tbl) => OrderingTerm.asc(tbl.name)]))
+          .get();
+
+  Future<int> addCollection(CollectionsCompanion collection) =>
+      into(collections).insert(collection);
+
+  Future<bool> updateCollection(int id, CollectionsCompanion collection) =>
+      (update(collections)..where((tbl) => tbl.id.equals(id)))
+          .write(collection)
+          .then((count) => count > 0);
+
+  Future<int> deleteCollection(int id) async {
+    await (delete(bookCollections)..where((tbl) => tbl.collectionId.equals(id)))
+        .go();
+    return (delete(collections)..where((tbl) => tbl.id.equals(id))).go();
+  }
+
+  Future<List<int>> getBookCollectionIds(int bookId) async {
+    final rows = await (select(bookCollections)
+          ..where((tbl) => tbl.bookId.equals(bookId)))
+        .get();
+    return rows.map((row) => row.collectionId).toList();
+  }
+
+  Future<void> setBookCollections(int bookId, Iterable<int> collectionIds) {
+    return transaction(() async {
+      await (delete(bookCollections)..where((tbl) => tbl.bookId.equals(bookId)))
+          .go();
+      await batch((batch) {
+        batch.insertAll(
+          bookCollections,
+          collectionIds
+              .map(
+                (collectionId) => BookCollectionsCompanion.insert(
+                  bookId: bookId,
+                  collectionId: collectionId,
+                ),
+              )
+              .toList(),
+        );
+      });
+    });
+  }
+
+  Future<int> countBooksInCollection(int collectionId) async {
+    final rows = await (select(bookCollections)
+          ..where((tbl) => tbl.collectionId.equals(collectionId)))
+        .get();
+    return rows.length;
+  }
 }

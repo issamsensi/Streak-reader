@@ -41,3 +41,18 @@ class JournalEntries extends Table {
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get modifiedAt => dateTime().withDefault(currentDateAndTime)();
 }
+
+class Collections extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text()();
+  TextColumn get description => text().withDefault(const Constant(''))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+class BookCollections extends Table {
+  IntColumn get bookId => integer()();
+  IntColumn get collectionId => integer()();
+
+  @override
+  Set<Column> get primaryKey => {bookId, collectionId};
+}

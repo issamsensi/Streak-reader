@@ -14,15 +14,20 @@ class AddBookSheet extends ConsumerStatefulWidget {
 
 class _AddBookSheetState extends ConsumerState<AddBookSheet> {
   final _titleController = TextEditingController();
+  final _authorController = TextEditingController();
+  final _pagesController = TextEditingController();
   String? _filePath;
   String? _fileName;
   int? _fileSize;
   String? _errorText;
   bool _loading = false;
+  bool _showMetadata = false;
 
   @override
   void dispose() {
     _titleController.dispose();
+    _authorController.dispose();
+    _pagesController.dispose();
     super.dispose();
   }
 
@@ -75,6 +80,10 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
     try {
       await ref.read(booksRepositoryProvider).addBook(
             title: title,
+            author: _authorController.text.trim().isEmpty
+                ? null
+                : _authorController.text.trim(),
+            totalPages: int.tryParse(_pagesController.text.trim()),
             filePath: _filePath,
             fileName: _fileName,
             fileSize: _fileSize,
@@ -156,6 +165,33 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
               errorText: _errorText,
             ),
           ),
+          const SizedBox(height: 12),
+          TextButton.icon(
+            onPressed: () => setState(() => _showMetadata = !_showMetadata),
+            icon: Icon(
+              _showMetadata ? Icons.expand_less : Icons.expand_more,
+            ),
+            label: Text(l10n.bookDetailsOptional),
+          ),
+          if (_showMetadata) ...[
+            TextField(
+              controller: _authorController,
+              textInputAction: TextInputAction.next,
+              decoration: InputDecoration(
+                labelText: l10n.authorOptional,
+                prefixIcon: const Icon(Icons.person_outline),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _pagesController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: l10n.totalPagesOptional,
+                prefixIcon: const Icon(Icons.format_list_numbered),
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
           _PdfPickerTile(fileName: _fileName, onTap: _pickPdf),
           if (_filePath == null)

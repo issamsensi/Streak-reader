@@ -181,6 +181,60 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bookDeleted => 'Book deleted.';
 
   @override
+  String get currentlyReading => 'Currently reading';
+
+  @override
+  String get wantToRead => 'Want to read';
+
+  @override
+  String get paused => 'Paused';
+
+  @override
+  String get abandoned => 'Abandoned';
+
+  @override
+  String get searchBooks => 'Search books';
+
+  @override
+  String get allBooks => 'All books';
+
+  @override
+  String get sortRecent => 'Recently added';
+
+  @override
+  String get sortTitle => 'Title';
+
+  @override
+  String get sortProgress => 'Progress';
+
+  @override
+  String get newCollection => 'New collection';
+
+  @override
+  String get collectionName => 'Collection name';
+
+  @override
+  String get authorOptional => 'Author (optional)';
+
+  @override
+  String get totalPagesOptional => 'Total pages (optional)';
+
+  @override
+  String get bookDetailsOptional => 'More book details';
+
+  @override
+  String get search => 'Search';
+
+  @override
+  String get clear => 'Clear';
+
+  @override
+  String get collections => 'Collections';
+
+  @override
+  String get collectionDescription => 'Description (optional)';
+
+  @override
   String get titleRequired => 'Please enter a book title.';
 
   @override
@@ -329,9 +383,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get finishReading => 'Finish session';
 
   @override
-  String get currentlyReading => 'Currently reading';
-
-  @override
   String get averageDailyReading => 'Average daily reading';
 
   @override
@@ -447,9 +498,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get searchJournal => 'Search journal';
-
-  @override
-  String get allBooks => 'All books';
 
   @override
   String get emptyJournal => 'Your reading reflections will appear here.';
