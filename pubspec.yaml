@@ -38,6 +38,8 @@ dependencies:
   flutter_timezone: ^5.1.1
   supabase_flutter: ^2.18.3
   home_widget: ^0.7.0
+  pdf: ^3.11.3
+  share_plus: ^10.1.4
 
 dev_dependencies:
   flutter_test:
@@ -47,6 +49,9 @@ dev_dependencies:
   # Code generation
   build_runner: ^2.4.13
   drift_dev: ^2.20.3
+
+dependency_overrides:
+  archive: ^4.6.0
 
 flutter:
   uses-material-design: true

@@ -20,6 +20,7 @@ import '../../settings/providers/settings_provider.dart';
 import '../../stats/presentation/stats_screen.dart';
 import '../../stats/providers/stats_provider.dart';
 import '../../journal/presentation/reading_journal_screen.dart';
+import '../../export/presentation/reading_export_screen.dart';
 import '../providers/books_providers.dart';
 import 'widgets/add_book_sheet.dart';
 import 'widgets/edit_title_dialog.dart';
@@ -450,6 +451,14 @@ class _BooksListScreenState extends ConsumerState<BooksListScreen> {
       appBar: AppBar(
         title: Text(l10n.booksLibrary),
         actions: [
+          IconButton.filledTonal(
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const ReadingExportScreen()),
+            ),
+            icon: const Icon(Icons.ios_share_rounded),
+            tooltip: 'Export',
+          ),
+          const SizedBox(width: 8),
           IconButton.filledTonal(
             onPressed: () {
               Navigator.of(context).push(
