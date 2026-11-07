@@ -40,7 +40,9 @@ String _statusLabel(AppLocalizations l10n, ReadingStatus status) {
 }
 
 class BooksListScreen extends ConsumerStatefulWidget {
-  const BooksListScreen({super.key});
+  const BooksListScreen({super.key, this.initialBookId});
+
+  final int? initialBookId;
 
   @override
   ConsumerState<BooksListScreen> createState() => _BooksListScreenState();
@@ -57,6 +59,18 @@ class _BooksListScreenState extends ConsumerState<BooksListScreen> {
     super.initState();
     _searchController.addListener(() => setState(() {}));
     _loadCollections();
+    if (widget.initialBookId != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _openInitialBook());
+    }
+  }
+
+  Future<void> _openInitialBook() async {
+    final bookId = widget.initialBookId;
+    if (!mounted || bookId == null) return;
+    final books = await ref.read(booksListProvider.future);
+    if (!mounted) return;
+    final book = books.where((item) => item.id == bookId).firstOrNull;
+    if (book != null) _openBook(context, ref, book);
   }
 
   @override

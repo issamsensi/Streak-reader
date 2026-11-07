@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:home_widget/home_widget.dart';
 
 import 'l10n/app_localizations.dart';
 import 'src/core/theme/app_theme.dart';
@@ -8,16 +9,28 @@ import 'src/features/settings/providers/settings_provider.dart';
 import 'src/core/notifications/reading_reminder_service.dart';
 import 'src/features/daily_goal/providers/daily_goal_provider.dart';
 import 'src/core/sync/sync_service.dart';
+import 'src/core/widgets/reading_widget_service.dart';
+import 'src/features/books/providers/books_providers.dart';
+import 'src/features/stats/providers/stats_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SyncService.initialize();
   await ReadingReminderService.instance.initialize();
-  runApp(const ProviderScope(child: MyApp()));
+  final widgetUri = await HomeWidget.initiallyLaunchedFromHomeWidget();
+  final initialBookId =
+      int.tryParse(widgetUri?.queryParameters['bookId'] ?? '');
+  runApp(
+    ProviderScope(
+      child: MyApp(initialBookId: initialBookId),
+    ),
+  );
 }
 
 class MyApp extends ConsumerWidget {
-  const MyApp({super.key});
+  const MyApp({super.key, this.initialBookId});
+
+  final int? initialBookId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -35,6 +48,15 @@ class MyApp extends ConsumerWidget {
         goalCompleted: next?.isComplete ?? false,
       );
     });
+    ref.listen(statsProvider, (_, next) {
+      next.whenData((stats) async {
+        final books = await ref.read(booksListProvider.future);
+        final current = books
+            .where((book) => book.readingStatus == 'currently_reading')
+            .firstOrNull;
+        await ReadingWidgetService.update(stats: stats, continueBook: current);
+      });
+    });
 
     return MaterialApp(
       title: 'Streak Reader',
@@ -47,7 +69,7 @@ class MyApp extends ConsumerWidget {
       themeMode: settings.themeMode,
       themeAnimationDuration: const Duration(milliseconds: 350),
       themeAnimationCurve: Curves.easeOutCubic,
-      home: const BooksListScreen(),
+      home: BooksListScreen(initialBookId: initialBookId),
     );
   }
 }

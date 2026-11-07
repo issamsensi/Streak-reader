@@ -44,6 +44,10 @@ android {
     }
 }
 
+configurations.all {
+    resolutionStrategy.force("androidx.glance:glance-appwidget:1.2.0")
+}
+
 flutter {
     source = "../.."
 }
