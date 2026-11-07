@@ -24,5 +24,6 @@ final readingCalendarProvider =
 
   return BuildReadingCalendar(
     goalMinutesForDate: settings.dailyGoalHistory.minutesForDateKey,
+    protectedDates: settings.streakProtection.protectedDates,
   )(sessions, monthStart);
 });

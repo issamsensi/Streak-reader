@@ -12,6 +12,7 @@ final statsProvider = FutureProvider<StreakResult>((ref) async {
   final booksAsync = await ref.watch(booksListProvider.future);
   final calc = CalculateStreak(
     goalMinutesForDate: settings.dailyGoalHistory.minutesForDateKey,
+    protectedDates: settings.streakProtection.protectedDates,
   );
   return calc(sessions, booksAsync);
 });

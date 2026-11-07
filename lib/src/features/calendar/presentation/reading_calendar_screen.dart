@@ -317,11 +317,14 @@ class _CalendarDayCell extends StatelessWidget {
 
     final hasActivity = activity?.hasActivity ?? false;
     final goalMet = activity?.goalMet ?? false;
-    final background = goalMet
-        ? palette.success
-        : hasActivity
-            ? palette.success.withValues(alpha: 0.18)
-            : scheme.surfaceContainerLow;
+    final protected = activity?.protected ?? false;
+    final background = protected
+        ? context.palette.gold.withValues(alpha: 0.22)
+        : goalMet
+            ? palette.success
+            : hasActivity
+                ? palette.success.withValues(alpha: 0.18)
+                : scheme.surfaceContainerLow;
     final foreground = goalMet
         ? scheme.onPrimary
         : hasActivity
@@ -334,11 +337,13 @@ class _CalendarDayCell extends StatelessWidget {
             : hasActivity
                 ? Colors.transparent
                 : palette.border.withValues(alpha: 0.6);
-    final statusLabel = goalMet
-        ? l10n.goalAchieved
-        : hasActivity
-            ? l10n.readingActivity
-            : l10n.noActivity;
+    final statusLabel = protected
+        ? l10n.streakDayProtected
+        : goalMet
+            ? l10n.goalAchieved
+            : hasActivity
+                ? l10n.readingActivity
+                : l10n.noActivity;
     final semanticsLabel =
         '${MaterialLocalizations.of(context).formatFullDate(date)}, $statusLabel';
 
@@ -416,6 +421,11 @@ class _CalendarLegend extends StatelessWidget {
           color: palette.success.withValues(alpha: 0.18),
           borderColor: palette.success.withValues(alpha: 0.4),
           label: l10n.readingActivity,
+        ),
+        _LegendItem(
+          color: palette.gold.withValues(alpha: 0.22),
+          borderColor: palette.gold,
+          label: l10n.streakDayProtected,
         ),
         _LegendItem(
           color: scheme.surfaceContainerLow,

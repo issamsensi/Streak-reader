@@ -13,6 +13,7 @@ class ReadingDayActivity {
   final int sessionCount;
   final int goalMinutes;
   final bool goalMet;
+  final bool protected;
 
   const ReadingDayActivity({
     required this.date,
@@ -21,6 +22,7 @@ class ReadingDayActivity {
     required this.pagesRead,
     required this.sessionCount,
     required this.goalMet,
+    this.protected = false,
     this.goalMinutes = AppConstants.defaultDailyGoalMinutes,
   });
 
@@ -72,10 +74,12 @@ class BuildReadingCalendar {
 
   /// Resolves the goal that applied on the stored `YYYY-MM-DD` date.
   final DailyGoalMinutesResolver? goalMinutesForDate;
+  final Set<String>? protectedDates;
 
   const BuildReadingCalendar({
     this.goalMinutes,
     this.goalMinutesForDate,
+    this.protectedDates,
   });
 
   int _goalForDate(String dateKey) =>
@@ -116,6 +120,25 @@ class BuildReadingCalendar {
         sessionCount: totals.sessionCount,
         goalMinutes: goalMinutes,
         goalMet: totals.totalSeconds >= goalMinutes * 60,
+      );
+    }
+    for (final dateKey in protectedDates ?? const <String>{}) {
+      final date = DateOnly.tryParse(dateKey);
+      if (date == null ||
+          date.year != monthStart.year ||
+          date.month != monthStart.month ||
+          days.containsKey(dateKey)) {
+        continue;
+      }
+      days[dateKey] = ReadingDayActivity(
+        date: date,
+        totalSeconds: 0,
+        totalMinutes: 0,
+        pagesRead: 0,
+        sessionCount: 0,
+        goalMinutes: _goalForDate(dateKey),
+        goalMet: false,
+        protected: true,
       );
     }
 

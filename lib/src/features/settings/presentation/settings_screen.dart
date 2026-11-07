@@ -5,8 +5,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/l10n/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/di/providers.dart';
+import '../../../core/utils/date_only.dart';
 import '../../../domain/entities/monthly_goal.dart';
 import '../../../domain/entities/reading_reminder.dart';
+import '../../stats/providers/stats_provider.dart';
 import '../providers/settings_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -173,6 +176,44 @@ class SettingsScreen extends ConsumerWidget {
         _ => context.l10n.reminderSunday,
       };
 
+  Future<void> _protectMissedDay(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final settings = ref.read(settingsProvider);
+    final stats = await ref.read(statsProvider.future);
+    if (!context.mounted) return;
+    final today = DateOnly.fromDate(DateTime.now());
+    final selected = await showDatePicker(
+      context: context,
+      firstDate: DateTime(today.year - 2),
+      lastDate: today.subtract(const Duration(days: 1)),
+      initialDate: today.subtract(const Duration(days: 1)),
+    );
+    if (selected == null || !context.mounted) return;
+    final key = DateOnly.key(selected);
+    if (settings.streakProtection.history.containsKey(key)) return;
+    final sessions = await ref.read(databaseProvider).getSessionsForDate(key);
+    if (!context.mounted) return;
+    final seconds = sessions.fold<int>(
+        0, (total, session) => total + session.durationSeconds);
+    final goal = settings.dailyGoalHistory.minutesForDateKey(key);
+    if (seconds >= goal * 60) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.protectionNotNeeded)),
+      );
+      return;
+    }
+    final used = await ref
+        .read(settingsProvider.notifier)
+        .protectDate(key, stats.actualLongestStreak);
+    if (!used || !context.mounted) return;
+    ref.invalidate(statsProvider);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(context.l10n.protectionUsed)),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
@@ -208,6 +249,59 @@ class SettingsScreen extends ConsumerWidget {
                 ],
               ),
             ),
+          ),
+          const SizedBox(height: 16),
+          Builder(
+            builder: (context) {
+              final stats = ref.watch(statsProvider).valueOrNull;
+              final credits = controller.protectionCreditsFor(
+                stats?.actualLongestStreak ?? 0,
+              );
+              final history = settings.streakProtection.history;
+              return _SettingsSection(
+                icon: Icons.shield_outlined,
+                title: l10n.streakProtection,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 4, 8, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.streakProtectionDescription,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        l10n.protectionCredits(credits),
+                        style: theme.textTheme.titleSmall,
+                      ),
+                      if (history.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          l10n.protectionHistory,
+                          style: theme.textTheme.labelLarge,
+                        ),
+                        for (final date in history.keys.toList()..sort())
+                          Text(
+                            date,
+                            style: theme.textTheme.bodySmall,
+                          ),
+                      ],
+                      const SizedBox(height: 8),
+                      OutlinedButton.icon(
+                        onPressed: credits == 0
+                            ? null
+                            : () => _protectMissedDay(context, ref),
+                        icon: const Icon(Icons.shield_rounded),
+                        label: Text(l10n.protectMissedDay),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
           const SizedBox(height: 16),
           _SettingsSection(

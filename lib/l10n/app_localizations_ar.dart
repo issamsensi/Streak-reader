@@ -21,6 +21,34 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settings => 'الإعدادات';
 
   @override
+  String get streakProtection => 'حماية السلسلة';
+
+  @override
+  String get streakProtectionDescription =>
+      'اكسب رصيد حماية عند إنجاز سلاسل 7 و30 و100 يوماً. يحافظ الرصيد على استمرارية السلسلة ليوم فائت دون إضافة نشاط قراءة.';
+
+  @override
+  String protectionCredits(int count) {
+    return 'أرصدة الحماية المتاحة: $count';
+  }
+
+  @override
+  String get protectionHistory => 'سجل الحماية';
+
+  @override
+  String get protectMissedDay => 'حماية يوم فائت';
+
+  @override
+  String get protectionUsed =>
+      'تمت حماية اليوم الفائت. لم تتم إضافة نشاط قراءة.';
+
+  @override
+  String get protectionNotNeeded => 'حقق ذلك اليوم هدف القراءة بالفعل.';
+
+  @override
+  String get streakDayProtected => 'يوم محمي';
+
+  @override
   String get readingReminder => 'تذكير القراءة';
 
   @override

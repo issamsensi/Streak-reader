@@ -4,6 +4,19 @@
   "booksLibrary": "Bibliothèque",
   "statistics": "Statistiques",
   "settings": "Paramètres",
+  "streakProtection": "Protection de série",
+  "streakProtectionDescription": "Gagnez un crédit aux paliers de 7, 30 et 100 jours. Un crédit préserve la continuité d'un jour manqué sans ajouter d'activité de lecture.",
+  "protectionCredits": "{count} crédits de protection disponibles",
+  "@protectionCredits": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "protectionHistory": "Historique des protections",
+  "protectMissedDay": "Protéger un jour manqué",
+  "protectionUsed": "Jour manqué protégé. Aucune activité de lecture n'a été ajoutée.",
+  "protectionNotNeeded": "Cet jour avait déjà atteint votre objectif de lecture.",
+  "streakDayProtected": "Jour protégé",
   "readingReminder": "Rappel de lecture",
   "reminderEnabled": "Rappels activés",
   "reminderDisabled": "Rappels désactivés",

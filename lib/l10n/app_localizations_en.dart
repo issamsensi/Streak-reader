@@ -21,6 +21,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settings => 'Settings';
 
   @override
+  String get streakProtection => 'Streak protection';
+
+  @override
+  String get streakProtectionDescription =>
+      'Earn one protection credit at 7, 30, and 100-day milestones. A credit preserves continuity for one missed day without adding reading activity.';
+
+  @override
+  String protectionCredits(int count) {
+    return '$count protection credits available';
+  }
+
+  @override
+  String get protectionHistory => 'Protection history';
+
+  @override
+  String get protectMissedDay => 'Protect a missed day';
+
+  @override
+  String get protectionUsed =>
+      'Missed day protected. No reading activity was added.';
+
+  @override
+  String get protectionNotNeeded => 'That day already met your reading goal.';
+
+  @override
+  String get streakDayProtected => 'Protected day';
+
+  @override
   String get readingReminder => 'Reading reminder';
 
   @override

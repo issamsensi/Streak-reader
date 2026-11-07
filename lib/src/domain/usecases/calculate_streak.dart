@@ -9,6 +9,7 @@ typedef DailyGoalMinutesResolver = int Function(String dateKey);
 class StreakResult {
   final int currentStreak;
   final int longestStreak;
+  final int actualLongestStreak;
   final int totalMinutes;
   final int completedBooks;
   final int totalPagesRead;
@@ -16,10 +17,12 @@ class StreakResult {
   final int todayMinutes;
   final int todayGoalMinutes;
   final ReadingStatistics readingStatistics;
+  final Set<String> protectedDates;
 
   const StreakResult({
     required this.currentStreak,
     required this.longestStreak,
+    this.actualLongestStreak = 0,
     required this.totalMinutes,
     required this.completedBooks,
     required this.totalPagesRead,
@@ -27,6 +30,7 @@ class StreakResult {
     this.todayMinutes = 0,
     this.todayGoalMinutes = AppConstants.defaultDailyGoalMinutes,
     this.readingStatistics = const ReadingStatistics(),
+    this.protectedDates = const {},
   });
 }
 
@@ -37,12 +41,15 @@ class CalculateStreak {
   /// Per-day goal lookup. Defaults to the pre-customization goal so old data
   /// and existing callers keep their historical completion records.
   final DailyGoalMinutesResolver _goalMinutesForDate;
+  final Set<String> _protectedDates;
 
   CalculateStreak({
     DateTime Function()? now,
     DailyGoalMinutesResolver? goalMinutesForDate,
+    Set<String>? protectedDates,
   })  : _now = now ?? DateTime.now,
-        _goalMinutesForDate = goalMinutesForDate ?? _defaultGoalForDate;
+        _goalMinutesForDate = goalMinutesForDate ?? _defaultGoalForDate,
+        _protectedDates = protectedDates ?? const {};
 
   static int _defaultGoalForDate(String _) =>
       AppConstants.defaultDailyGoalMinutes;
@@ -57,7 +64,7 @@ class CalculateStreak {
       now: _now(),
     );
 
-    if (sessions.isEmpty) {
+    if (sessions.isEmpty && _protectedDates.isEmpty) {
       return StreakResult(
         currentStreak: 0,
         longestStreak: 0,
@@ -68,6 +75,7 @@ class CalculateStreak {
         todayMinutes: 0,
         todayGoalMinutes: _goalMinutesForDate(todayKey),
         readingStatistics: readingStatistics,
+        protectedDates: _protectedDates,
       );
     }
 
@@ -91,6 +99,13 @@ class CalculateStreak {
       final date = DateOnly.tryParse(entry.key);
       if (date != null) qualifyingDates.add(date);
     }
+    final actualLongest = _longestRun(qualifyingDates);
+    for (final dateKey in _protectedDates) {
+      final date = DateOnly.tryParse(dateKey);
+      if (date != null && date.isBefore(DateOnly.fromDate(_now()))) {
+        qualifyingDates.add(date);
+      }
+    }
 
     final longest = _longestRun(qualifyingDates);
     final current = _currentRun(qualifyingDates);
@@ -99,6 +114,7 @@ class CalculateStreak {
     return StreakResult(
       currentStreak: current,
       longestStreak: longest,
+      actualLongestStreak: actualLongest,
       totalMinutes: totalSeconds ~/ 60,
       completedBooks: completedBooks,
       totalPagesRead: totalPages,
@@ -106,6 +122,7 @@ class CalculateStreak {
       todayMinutes: todaySeconds ~/ 60,
       todayGoalMinutes: _goalMinutesForDate(todayKey),
       readingStatistics: readingStatistics,
+      protectedDates: _protectedDates,
     );
   }
 

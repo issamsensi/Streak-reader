@@ -124,6 +124,54 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get settings;
 
+  /// No description provided for @streakProtection.
+  ///
+  /// In en, this message translates to:
+  /// **'Streak protection'**
+  String get streakProtection;
+
+  /// No description provided for @streakProtectionDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Earn one protection credit at 7, 30, and 100-day milestones. A credit preserves continuity for one missed day without adding reading activity.'**
+  String get streakProtectionDescription;
+
+  /// No description provided for @protectionCredits.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} protection credits available'**
+  String protectionCredits(int count);
+
+  /// No description provided for @protectionHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Protection history'**
+  String get protectionHistory;
+
+  /// No description provided for @protectMissedDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Protect a missed day'**
+  String get protectMissedDay;
+
+  /// No description provided for @protectionUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Missed day protected. No reading activity was added.'**
+  String get protectionUsed;
+
+  /// No description provided for @protectionNotNeeded.
+  ///
+  /// In en, this message translates to:
+  /// **'That day already met your reading goal.'**
+  String get protectionNotNeeded;
+
+  /// No description provided for @streakDayProtected.
+  ///
+  /// In en, this message translates to:
+  /// **'Protected day'**
+  String get streakDayProtected;
+
   /// No description provided for @readingReminder.
   ///
   /// In en, this message translates to:

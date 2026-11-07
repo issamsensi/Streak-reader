@@ -4,6 +4,19 @@
   "booksLibrary": "مكتبة الكتب",
   "statistics": "الإحصائيات",
   "settings": "الإعدادات",
+  "streakProtection": "حماية السلسلة",
+  "streakProtectionDescription": "اكسب رصيد حماية عند إنجاز سلاسل 7 و30 و100 يوماً. يحافظ الرصيد على استمرارية السلسلة ليوم فائت دون إضافة نشاط قراءة.",
+  "protectionCredits": "أرصدة الحماية المتاحة: {count}",
+  "@protectionCredits": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "protectionHistory": "سجل الحماية",
+  "protectMissedDay": "حماية يوم فائت",
+  "protectionUsed": "تمت حماية اليوم الفائت. لم تتم إضافة نشاط قراءة.",
+  "protectionNotNeeded": "حقق ذلك اليوم هدف القراءة بالفعل.",
+  "streakDayProtected": "يوم محمي",
   "readingReminder": "تذكير القراءة",
   "reminderEnabled": "التذكيرات مفعلة",
   "reminderDisabled": "التذكيرات متوقفة",

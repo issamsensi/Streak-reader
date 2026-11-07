@@ -4,6 +4,19 @@
   "booksLibrary": "Book Library",
   "statistics": "Statistics",
   "settings": "Settings",
+  "streakProtection": "Streak protection",
+  "streakProtectionDescription": "Earn one protection credit at 7, 30, and 100-day milestones. A credit preserves continuity for one missed day without adding reading activity.",
+  "protectionCredits": "{count} protection credits available",
+  "@protectionCredits": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "protectionHistory": "Protection history",
+  "protectMissedDay": "Protect a missed day",
+  "protectionUsed": "Missed day protected. No reading activity was added.",
+  "protectionNotNeeded": "That day already met your reading goal.",
+  "streakDayProtected": "Protected day",
   "readingReminder": "Reading reminder",
   "reminderEnabled": "Reminders enabled",
   "reminderDisabled": "Reminders disabled",

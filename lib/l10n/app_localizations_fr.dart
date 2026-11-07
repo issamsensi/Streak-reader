@@ -21,6 +21,35 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settings => 'Paramètres';
 
   @override
+  String get streakProtection => 'Protection de série';
+
+  @override
+  String get streakProtectionDescription =>
+      'Gagnez un crédit aux paliers de 7, 30 et 100 jours. Un crédit préserve la continuité d\'un jour manqué sans ajouter d\'activité de lecture.';
+
+  @override
+  String protectionCredits(int count) {
+    return '$count crédits de protection disponibles';
+  }
+
+  @override
+  String get protectionHistory => 'Historique des protections';
+
+  @override
+  String get protectMissedDay => 'Protéger un jour manqué';
+
+  @override
+  String get protectionUsed =>
+      'Jour manqué protégé. Aucune activité de lecture n\'a été ajoutée.';
+
+  @override
+  String get protectionNotNeeded =>
+      'Cet jour avait déjà atteint votre objectif de lecture.';
+
+  @override
+  String get streakDayProtected => 'Jour protégé';
+
+  @override
   String get readingReminder => 'Rappel de lecture';
 
   @override

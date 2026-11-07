@@ -8,6 +8,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../../domain/entities/daily_goal_history.dart';
 import '../../../domain/entities/monthly_goal.dart';
 import '../../../domain/entities/reading_reminder.dart';
+import '../../../domain/entities/streak_protection.dart';
 import '../../../core/notifications/reading_reminder_service.dart';
 
 class AppSettings {
@@ -18,6 +19,7 @@ class AppSettings {
   final MonthlyGoalHistory monthlyGoalHistory;
   final Map<String, Set<int>> completedBookHistory;
   final ReadingReminderSettings readingReminder;
+  final StreakProtection streakProtection;
 
   const AppSettings({
     this.languageCode = 'ar',
@@ -27,6 +29,7 @@ class AppSettings {
     this.monthlyGoalHistory = const MonthlyGoalHistory(),
     this.completedBookHistory = const {},
     this.readingReminder = const ReadingReminderSettings(),
+    this.streakProtection = const StreakProtection(),
   });
 
   Locale get locale => Locale(languageCode);
@@ -39,6 +42,7 @@ class AppSettings {
     MonthlyGoalHistory? monthlyGoalHistory,
     Map<String, Set<int>>? completedBookHistory,
     ReadingReminderSettings? readingReminder,
+    StreakProtection? streakProtection,
   }) {
     return AppSettings(
       languageCode: languageCode ?? this.languageCode,
@@ -48,6 +52,7 @@ class AppSettings {
       monthlyGoalHistory: monthlyGoalHistory ?? this.monthlyGoalHistory,
       completedBookHistory: completedBookHistory ?? this.completedBookHistory,
       readingReminder: readingReminder ?? this.readingReminder,
+      streakProtection: streakProtection ?? this.streakProtection,
     );
   }
 }
@@ -59,6 +64,7 @@ class SettingsController extends StateNotifier<AppSettings> {
   static const _monthlyGoalHistoryKey = 'settings_monthly_goal_history';
   static const _completedBookHistoryKey = 'settings_completed_book_history';
   static const _readingReminderKey = 'settings_reading_reminder';
+  static const _streakProtectionKey = 'settings_streak_protection';
 
   final DateTime Function() _now;
   late final Future<void> initialized;
@@ -86,6 +92,9 @@ class SettingsController extends StateNotifier<AppSettings> {
     final completedHistory =
         _readCompletedBookHistory(prefs.getString(_completedBookHistoryKey));
     final reminder = _readReminder(prefs.getString(_readingReminderKey));
+    final protection = _readProtection(
+      prefs.getString(_streakProtectionKey),
+    );
     state = AppSettings(
       languageCode: switch (language) {
         'ar' || 'en' || 'fr' => language!,
@@ -101,7 +110,19 @@ class SettingsController extends StateNotifier<AppSettings> {
       monthlyGoalHistory: monthlyHistory,
       completedBookHistory: completedHistory,
       readingReminder: reminder,
+      streakProtection: protection,
     );
+  }
+
+  StreakProtection _readProtection(String? raw) {
+    if (raw == null || raw.isEmpty) return const StreakProtection();
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is Map) return StreakProtection.fromMap(decoded);
+    } on FormatException {
+      // Corrupted preferences should not prevent the app from starting.
+    }
+    return const StreakProtection();
   }
 
   ReadingReminderSettings _readReminder(String? raw) {
@@ -212,6 +233,29 @@ class SettingsController extends StateNotifier<AppSettings> {
       reminder,
       goalCompleted: false,
     );
+  }
+
+  int protectionCreditsFor(int longestStreak) {
+    final earned = [
+      if (longestStreak >= 7) 'streak_7',
+      if (longestStreak >= 30) 'streak_30',
+      if (longestStreak >= 100) 'streak_100',
+    ];
+    return (earned.length - state.streakProtection.history.length)
+        .clamp(0, earned.length);
+  }
+
+  Future<bool> protectDate(String dateKey, int longestStreak) async {
+    if (state.streakProtection.history.containsKey(dateKey)) return false;
+    if (protectionCreditsFor(longestStreak) <= 0) return false;
+    final protection = state.streakProtection.protect(dateKey, DateTime.now());
+    state = state.copyWith(streakProtection: protection);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _streakProtectionKey,
+      jsonEncode(protection.toMap()),
+    );
+    return true;
   }
 }
 
