@@ -19,8 +19,20 @@ class AppDatabase extends _$AppDatabase {
   Future<List<Book>> getAllBooks() => select(books).get();
   Future<int> insertBook(BooksCompanion book) => into(books).insert(book);
   Future<bool> updateBook(BooksCompanion book) => update(books).replace(book);
-  Future<int> deleteBook(int id) =>
-      (delete(books)..where((tbl) => tbl.id.equals(id))).go();
+
+  /// Deletes a book and its reading sessions in one transaction so streak and
+  /// page totals never keep counting sessions from a removed book.
+  ///
+  /// The explicit session delete also works when SQLite foreign-key
+  /// enforcement is disabled, which is the default for Drift databases.
+  Future<int> deleteBook(int id) {
+    return transaction(() async {
+      await (delete(readingSessions)..where((tbl) => tbl.bookId.equals(id)))
+          .go();
+      return (delete(books)..where((tbl) => tbl.id.equals(id))).go();
+    });
+  }
+
   Future<void> updateBookLastPage(int id, int lastPage) =>
       (update(books)..where((tbl) => tbl.id.equals(id)))
           .write(BooksCompanion(lastPage: Value(lastPage)));
@@ -28,7 +40,8 @@ class AppDatabase extends _$AppDatabase {
   // Reading sessions
   Future<int> insertSession(ReadingSessionsCompanion session) =>
       into(readingSessions).insert(session);
-  Future<List<ReadingSession>> getAllSessions() => select(readingSessions).get();
+  Future<List<ReadingSession>> getAllSessions() =>
+      select(readingSessions).get();
   Future<List<ReadingSession>> getSessionsForDate(String date) =>
       (select(readingSessions)..where((tbl) => tbl.date.equals(date))).get();
 }

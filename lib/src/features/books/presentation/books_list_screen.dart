@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/l10n/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/file_exists.dart';
+import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/streak_banner.dart';
 import '../../../data/datasources/local/app_database.dart';
 import '../../reader/presentation/pdf_reader_screen.dart';
@@ -33,28 +34,117 @@ class BooksListScreen extends ConsumerWidget {
     WidgetRef ref,
     Book book,
   ) async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['pdf'],
-    );
-    if (result == null) return;
-    final file = result.files.single;
+    final l10n = context.l10n;
+    PlatformFile file;
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+      );
+      if (result == null) return;
+      file = result.files.single;
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.errorMessage(error.toString()))),
+      );
+      return;
+    }
+
     if (file.path == null) {
       // Web pickers return bytes instead of a local path.
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.l10n.attachPdfWebUnsupported)),
+          SnackBar(content: Text(l10n.attachPdfWebUnsupported)),
         );
       }
       return;
     }
-    await ref.read(booksRepositoryProvider).updateBookFile(
-          book.id,
-          filePath: file.path!,
-          fileName: file.name,
-          fileSize: file.size,
+
+    try {
+      await ref.read(booksRepositoryProvider).updateBookFile(
+            book.id,
+            filePath: file.path!,
+            fileName: file.name,
+            fileSize: file.size,
+          );
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.saveFailed)),
+      );
+      return;
+    }
+
+    if (context.mounted) ref.invalidate(booksListProvider);
+  }
+
+  Future<void> _setCompleted(
+    BuildContext context,
+    WidgetRef ref,
+    Book book,
+    bool completed,
+  ) async {
+    try {
+      await ref.read(booksRepositoryProvider).markCompleted(book.id, completed);
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.saveFailed)),
+      );
+      return;
+    }
+    if (context.mounted) ref.invalidate(booksListProvider);
+  }
+
+  Future<void> _deleteBook(
+    BuildContext context,
+    WidgetRef ref,
+    Book book,
+  ) async {
+    final l10n = context.l10n;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        final scheme = Theme.of(dialogContext).colorScheme;
+        return AlertDialog(
+          title: Text(l10n.deleteBookTitle),
+          content: Text(l10n.deleteBookBody(book.title)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: scheme.error,
+                foregroundColor: scheme.onError,
+              ),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(l10n.delete),
+            ),
+          ],
         );
+      },
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    try {
+      await ref.read(booksRepositoryProvider).deleteBook(book.id);
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.deleteFailed)),
+      );
+      return;
+    }
+
+    if (!context.mounted) return;
     ref.invalidate(booksListProvider);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.bookDeleted)),
+    );
   }
 
   void _showEditDialog(BuildContext context, Book book) {
@@ -226,13 +316,18 @@ class BooksListScreen extends ConsumerWidget {
                 onTap: () => _openBook(context, ref, book),
                 onEdit: () => _showEditDialog(context, book),
                 onAttachPdf: () => _attachPdf(context, ref, book),
+                onSetCompleted: (completed) =>
+                    _setCompleted(context, ref, book, completed),
+                onDelete: () => _deleteBook(context, ref, book),
               );
             },
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) =>
-            Center(child: Text(l10n.errorMessage(err.toString()))),
+        error: (err, stack) => ErrorState(
+          message: l10n.errorMessage(err.toString()),
+          onRetry: () => ref.invalidate(booksListProvider),
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddSheet(context),
@@ -248,12 +343,16 @@ class _BookCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onEdit;
   final VoidCallback onAttachPdf;
+  final ValueChanged<bool> onSetCompleted;
+  final VoidCallback onDelete;
 
   const _BookCard({
     required this.book,
     required this.onTap,
     required this.onEdit,
     required this.onAttachPdf,
+    required this.onSetCompleted,
+    required this.onDelete,
   });
 
   @override
@@ -311,24 +410,60 @@ class _BookCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    if (hasFile && exists && book.lastPage > 0) ...[
+                    if (book.isCompleted ||
+                        (hasFile && exists && book.lastPage > 0)) ...[
                       const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 9,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.primaryContainer
-                              .withValues(alpha: 0.6),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          l10n.pageNumberLabel(book.lastPage),
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.onPrimaryContainer,
-                          ),
-                        ),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          if (hasFile && exists && book.lastPage > 0)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 9,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primaryContainer
+                                    .withValues(alpha: 0.6),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                l10n.pageNumberLabel(book.lastPage),
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: theme.colorScheme.onPrimaryContainer,
+                                ),
+                              ),
+                            ),
+                          if (book.isCompleted)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 9,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: palette.success.withValues(alpha: 0.14),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.check_circle_rounded,
+                                    size: 12,
+                                    color: palette.success,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    l10n.completed,
+                                    style: theme.textTheme.labelSmall?.copyWith(
+                                      color: palette.success,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
                       ),
                     ],
                   ],
@@ -341,6 +476,10 @@ class _BookCard extends StatelessWidget {
                     onEdit();
                   } else if (value == 'attach_pdf') {
                     onAttachPdf();
+                  } else if (value == 'toggle_completed') {
+                    onSetCompleted(!book.isCompleted);
+                  } else if (value == 'delete') {
+                    onDelete();
                   }
                 },
                 itemBuilder: (context) => [
@@ -354,7 +493,12 @@ class _BookCard extends StatelessWidget {
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
                         const SizedBox(width: 10),
-                        Text(l10n.editTitle),
+                        Flexible(
+                          child: Text(
+                            l10n.editTitle,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -368,7 +512,56 @@ class _BookCard extends StatelessWidget {
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
                         const SizedBox(width: 10),
-                        Text(hasFile ? l10n.changePdf : l10n.addPdf),
+                        Flexible(
+                          child: Text(
+                            hasFile ? l10n.changePdf : l10n.addPdf,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'toggle_completed',
+                    child: Row(
+                      children: [
+                        Icon(
+                          book.isCompleted
+                              ? Icons.restart_alt_rounded
+                              : Icons.check_circle_outline_rounded,
+                          size: 18,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 10),
+                        Flexible(
+                          child: Text(
+                            book.isCompleted
+                                ? l10n.markAsUnread
+                                : l10n.markAsCompleted,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuDivider(),
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.delete_outline_rounded,
+                          size: 18,
+                          color: theme.colorScheme.error,
+                        ),
+                        const SizedBox(width: 10),
+                        Flexible(
+                          child: Text(
+                            l10n.deleteBook,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(color: theme.colorScheme.error),
+                          ),
+                        ),
                       ],
                     ),
                   ),

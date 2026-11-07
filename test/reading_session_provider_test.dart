@@ -9,7 +9,11 @@ void main() {
     addTearDown(db.close);
 
     final bookId = await db.insertBook(BooksCompanion.insert(title: 'Book'));
-    final controller = ReadingSessionController(db);
+    var savedNotifications = 0;
+    final controller = ReadingSessionController(
+      db,
+      onSessionSaved: () => savedNotifications++,
+    );
 
     controller.start(bookId, 5);
     controller.updatePage(12);
@@ -20,6 +24,7 @@ void main() {
     expect(books.single.lastPage, 12);
     expect(controller.state.isActive, isFalse);
     expect(controller.state.currentPage, 12);
+    expect(savedNotifications, 1);
 
     final sessions = await db.getAllSessions();
     expect(sessions, hasLength(1));
@@ -28,6 +33,7 @@ void main() {
     // A second call (e.g. idle-save racing dispose) must not duplicate.
     await controller.stopAndSave();
     expect(await db.getAllSessions(), hasLength(1));
+    expect(savedNotifications, 1);
   });
 
   test('page is persisted on page change, before the session ends', () async {

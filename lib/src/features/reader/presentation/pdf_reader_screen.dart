@@ -148,6 +148,83 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen>
                 controller: _controller,
                 initialPageNumber: _initialPage,
                 params: PdfViewerParams(
+                  backgroundColor: theme.colorScheme.surface,
+                  loadingBannerBuilder: (context, bytesDownloaded, totalBytes) {
+                    return Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 28,
+                            height: 28,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              value: totalBytes != null && totalBytes > 0
+                                  ? bytesDownloaded / totalBytes
+                                  : null,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            context.l10n.loadingPdf,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  errorBannerBuilder:
+                      (context, error, stackTrace, documentRef) {
+                    final errorTheme = Theme.of(context);
+                    return Center(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(28),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.error_outline_rounded,
+                              size: 40,
+                              color: errorTheme.colorScheme.error,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              context.l10n.readerLoadError,
+                              textAlign: TextAlign.center,
+                              style: errorTheme.textTheme.titleMedium,
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              error.toString(),
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                              style: errorTheme.textTheme.bodySmall?.copyWith(
+                                color: errorTheme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                  onViewerReady: (document, controller) {
+                    if (!mounted) return;
+                    final pageCount = document.pages.length;
+                    setState(() => _pageCount = pageCount);
+                    // The stored page can be stale if the PDF was replaced by
+                    // a shorter document. Clamp it so reading can continue.
+                    if (pageCount > 0 && _currentPage > pageCount) {
+                      _sessionController?.updatePage(pageCount);
+                      setState(() => _currentPage = pageCount);
+                      unawaited(
+                        controller.goToPage(
+                          pageNumber: pageCount,
+                          duration: Duration.zero,
+                        ),
+                      );
+                    }
+                  },
                   onPageChanged: (page) {
                     _onInteraction();
                     if (page == null || !mounted) return;

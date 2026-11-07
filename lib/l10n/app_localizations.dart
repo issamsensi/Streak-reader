@@ -369,6 +369,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Choose a PDF or save it to your wishlist.'**
   String get addBookSubtitle;
+
+  /// No description provided for @markAsCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as completed'**
+  String get markAsCompleted;
+
+  /// No description provided for @markAsUnread.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as unread'**
+  String get markAsUnread;
+
+  /// No description provided for @completed.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get completed;
+
+  /// No description provided for @deleteBook.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete book'**
+  String get deleteBook;
+
+  /// No description provided for @deleteBookTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete book?'**
+  String get deleteBookTitle;
+
+  /// No description provided for @deleteBookBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This permanently deletes \"{title}\" and its reading sessions.'**
+  String deleteBookBody(String title);
+
+  /// No description provided for @delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
+
+  /// No description provided for @bookDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Book deleted.'**
+  String get bookDeleted;
+
+  /// No description provided for @titleRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a book title.'**
+  String get titleRequired;
+
+  /// No description provided for @retry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get retry;
+
+  /// No description provided for @readerLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open this PDF.'**
+  String get readerLoadError;
+
+  /// No description provided for @loadingPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing PDF…'**
+  String get loadingPdf;
+
+  /// No description provided for @saveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save changes. Please try again.'**
+  String get saveFailed;
+
+  /// No description provided for @deleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not delete the book. Please try again.'**
+  String get deleteFailed;
 }
 
 class _AppLocalizationsDelegate

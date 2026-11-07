@@ -17,6 +17,7 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
   String? _filePath;
   String? _fileName;
   int? _fileSize;
+  String? _errorText;
   bool _loading = false;
 
   @override
@@ -26,37 +27,70 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
   }
 
   Future<void> _pickPdf() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['pdf'],
-      withData: false,
-    );
-    if (result == null) return;
-    final file = result.files.single;
+    final l10n = context.l10n;
+    PlatformFile? picked;
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+        withData: false,
+      );
+      if (result == null) return;
+      picked = result.files.single;
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.errorMessage(error.toString()))),
+      );
+      return;
+    }
+
+    if (!mounted) return;
     setState(() {
       // On web, FilePicker provides bytes/name but no local path; the book
       // is then saved title-only (wishlist) instead of silently doing nothing.
-      _filePath = file.path;
-      _fileName = file.name;
-      _fileSize = file.size;
+      _filePath = picked!.path;
+      _fileName = picked.name;
+      _fileSize = picked.size;
       if (_titleController.text.isEmpty) {
-        _titleController.text = _fileName!.replaceAll('.pdf', '');
+        _titleController.text = picked.name
+            .replaceFirst(RegExp(r'\.pdf$', caseSensitive: false), '');
       }
     });
   }
 
   Future<void> _save() async {
-    if (_titleController.text.trim().isEmpty) return;
-    setState(() => _loading = true);
-    final repo = ref.read(booksRepositoryProvider);
-    await repo.addBook(
-      title: _titleController.text.trim(),
-      filePath: _filePath,
-      fileName: _fileName,
-      fileSize: _fileSize,
-    );
+    final l10n = context.l10n;
+    final title = _titleController.text.trim();
+    if (title.isEmpty) {
+      setState(() => _errorText = l10n.titleRequired);
+      return;
+    }
+
+    setState(() {
+      _loading = true;
+      _errorText = null;
+    });
+
+    try {
+      await ref.read(booksRepositoryProvider).addBook(
+            title: title,
+            filePath: _filePath,
+            fileName: _fileName,
+            fileSize: _fileSize,
+          );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.saveFailed)),
+      );
+      return;
+    }
+
+    if (!mounted) return;
     ref.invalidate(booksListProvider);
-    if (mounted) Navigator.of(context).pop();
+    Navigator.of(context).pop();
   }
 
   @override
@@ -113,9 +147,13 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
             controller: _titleController,
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => _save(),
+            onChanged: (_) {
+              if (_errorText != null) setState(() => _errorText = null);
+            },
             decoration: InputDecoration(
               labelText: l10n.bookTitle,
               prefixIcon: const Icon(Icons.menu_book_outlined),
+              errorText: _errorText,
             ),
           ),
           const SizedBox(height: 12),
@@ -189,9 +227,8 @@ class _PdfPickerTile extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: hasFile
-                      ? scheme.primary
-                      : scheme.surfaceContainerLowest,
+                  color:
+                      hasFile ? scheme.primary : scheme.surfaceContainerLowest,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(

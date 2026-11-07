@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/l10n/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/streak_banner.dart';
 import '../providers/stats_provider.dart';
 
@@ -62,8 +63,10 @@ class StatsScreen extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) =>
-            Center(child: Text(l10n.errorMessage(err.toString()))),
+        error: (err, stack) => ErrorState(
+          message: l10n.errorMessage(err.toString()),
+          onRetry: () => ref.invalidate(statsProvider),
+        ),
       ),
     );
   }

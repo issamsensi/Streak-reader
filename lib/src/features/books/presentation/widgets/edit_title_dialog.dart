@@ -20,6 +20,8 @@ class EditTitleDialog extends ConsumerStatefulWidget {
 
 class _EditTitleDialogState extends ConsumerState<EditTitleDialog> {
   late final TextEditingController _controller;
+  String? _errorText;
+  bool _loading = false;
 
   @override
   void initState() {
@@ -34,15 +36,37 @@ class _EditTitleDialogState extends ConsumerState<EditTitleDialog> {
   }
 
   Future<void> _save() async {
+    final l10n = context.l10n;
     final title = _controller.text.trim();
-    if (title.isEmpty) return;
-    await ref.read(booksRepositoryProvider).updateTitle(widget.bookId, title);
+    if (title.isEmpty) {
+      setState(() => _errorText = l10n.titleRequired);
+      return;
+    }
+
+    setState(() {
+      _loading = true;
+      _errorText = null;
+    });
+
+    try {
+      await ref.read(booksRepositoryProvider).updateTitle(widget.bookId, title);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.saveFailed)),
+      );
+      return;
+    }
+
+    if (!mounted) return;
     ref.invalidate(booksListProvider);
-    if (mounted) Navigator.of(context).pop();
+    Navigator.of(context).pop();
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final theme = Theme.of(context);
 
     return AlertDialog(
@@ -62,7 +86,7 @@ class _EditTitleDialogState extends ConsumerState<EditTitleDialog> {
             ),
           ),
           const SizedBox(width: 12),
-          Expanded(child: Text(context.l10n.editTitle)),
+          Expanded(child: Text(l10n.editTitle)),
         ],
       ),
       content: TextField(
@@ -70,19 +94,32 @@ class _EditTitleDialogState extends ConsumerState<EditTitleDialog> {
         autofocus: true,
         textInputAction: TextInputAction.done,
         onSubmitted: (_) => _save(),
+        onChanged: (_) {
+          if (_errorText != null) setState(() => _errorText = null);
+        },
         decoration: InputDecoration(
-          labelText: context.l10n.bookTitle,
+          labelText: l10n.bookTitle,
           prefixIcon: const Icon(Icons.menu_book_outlined),
+          errorText: _errorText,
         ),
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(context.l10n.cancel),
+          onPressed: _loading ? null : () => Navigator.of(context).pop(),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
-          onPressed: _save,
-          child: Text(context.l10n.save),
+          onPressed: _loading ? null : _save,
+          child: _loading
+              ? SizedBox(
+                  height: 18,
+                  width: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: theme.colorScheme.onPrimary,
+                  ),
+                )
+              : Text(l10n.save),
         ),
       ],
     );

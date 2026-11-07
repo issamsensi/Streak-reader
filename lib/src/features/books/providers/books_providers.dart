@@ -12,5 +12,7 @@ final booksRepositoryProvider = Provider<BooksRepository>((ref) {
 
 final booksListProvider = FutureProvider<List<Book>>((ref) async {
   final repo = ref.watch(booksRepositoryProvider);
+  // Re-read whenever a reading session persists a new page/totals.
+  ref.watch(dataRevisionProvider);
   return repo.getAllBooks();
 });

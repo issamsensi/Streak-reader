@@ -44,5 +44,19 @@
   "streakGoalHint": "Lisez {minutes} minutes aujourd'hui pour garder votre série.",
   "readingOverview": "Aperçu de lecture",
   "appTagline": "Un peu de lecture chaque jour fait la différence.",
-  "addBookSubtitle": "Choisissez un PDF ou ajoutez-le à votre liste « À lire »."
+  "addBookSubtitle": "Choisissez un PDF ou ajoutez-le à votre liste « À lire ».",
+  "markAsCompleted": "Marquer comme terminé",
+  "markAsUnread": "Marquer comme non lu",
+  "completed": "Terminé",
+  "deleteBook": "Supprimer le livre",
+  "deleteBookTitle": "Supprimer le livre ?",
+  "deleteBookBody": "Cela supprime définitivement \"{title}\" et ses sessions de lecture.",
+  "delete": "Supprimer",
+  "bookDeleted": "Livre supprimé.",
+  "titleRequired": "Veuillez saisir un titre de livre.",
+  "retry": "Réessayer",
+  "readerLoadError": "Impossible d'ouvrir ce PDF.",
+  "loadingPdf": "Préparation du PDF…",
+  "saveFailed": "Impossible d'enregistrer les modifications. Réessayez.",
+  "deleteFailed": "Impossible de supprimer le livre. Réessayez."
 }

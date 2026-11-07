@@ -8,7 +8,10 @@ import '../../../data/datasources/local/app_database.dart';
 final readingSessionControllerProvider =
     StateNotifierProvider<ReadingSessionController, ReadingSessionState>((ref) {
   final db = ref.watch(databaseProvider);
-  return ReadingSessionController(db);
+  return ReadingSessionController(
+    db,
+    onSessionSaved: () => ref.read(dataRevisionProvider.notifier).state++,
+  );
 });
 
 class ReadingSessionState {
@@ -58,12 +61,14 @@ class ReadingSessionState {
 
 class ReadingSessionController extends StateNotifier<ReadingSessionState> {
   final AppDatabase db;
+  final void Function()? onSessionSaved;
   DateTime _lastInteraction = DateTime.now();
   bool _isSaving = false;
   int _lastPersistedPage = 0;
   Future<void> _pendingPersist = Future<void>.value();
 
-  ReadingSessionController(this.db) : super(ReadingSessionState.initial(0));
+  ReadingSessionController(this.db, {this.onSessionSaved})
+      : super(ReadingSessionState.initial(0));
 
   void start(int bookId, int initialPage) {
     _lastInteraction = DateTime.now();
@@ -154,6 +159,7 @@ class ReadingSessionController extends StateNotifier<ReadingSessionState> {
           pagesRead: drift.Value(pagesRead),
         ),
       );
+      onSessionSaved?.call();
     } finally {
       _isSaving = false;
     }

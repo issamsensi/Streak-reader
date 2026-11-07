@@ -18,105 +18,104 @@ class StreakResult {
 }
 
 class CalculateStreak {
+  /// Injectable clock so streak boundaries can be tested deterministically.
+  final DateTime Function() _now;
+
+  CalculateStreak({DateTime Function()? now}) : _now = now ?? DateTime.now;
+
   StreakResult call(List<ReadingSession> sessions, List<Book> books) {
+    final completedBooks = books.where((b) => b.isCompleted).length;
+
     if (sessions.isEmpty) {
-      final completed = books.where((b) => b.isCompleted).length;
       return StreakResult(
         currentStreak: 0,
         longestStreak: 0,
         totalMinutes: 0,
-        completedBooks: completed,
+        completedBooks: completedBooks,
         totalPagesRead: 0,
       );
     }
 
-    // Group by date
-    final Map<String, int> minutesByDate = {};
+    // Accumulate seconds per calendar day *before* converting to minutes.
+    // Summing each session's floored minutes would lose short sessions and
+    // could keep a day below the threshold despite enough total reading.
+    final secondsByDate = <String, int>{};
     int totalSeconds = 0;
     int totalPages = 0;
-    for (final s in sessions) {
-      totalSeconds += s.durationSeconds;
-      totalPages += s.pagesRead;
-      minutesByDate[s.date] = (minutesByDate[s.date] ?? 0) + s.durationSeconds ~/ 60;
+    for (final session in sessions) {
+      totalSeconds += session.durationSeconds;
+      totalPages += session.pagesRead;
+      secondsByDate[session.date] =
+          (secondsByDate[session.date] ?? 0) + session.durationSeconds;
     }
 
-    // Get qualifying dates (>= threshold)
-    final qualifying = <String>{};
-    for (final entry in minutesByDate.entries) {
-      if (entry.value >= AppConstants.streakMinMinutes) {
-        qualifying.add(entry.key);
-      }
+    const thresholdSeconds = AppConstants.streakMinMinutes * 60;
+    final qualifyingDates = <DateTime>{};
+    for (final entry in secondsByDate.entries) {
+      if (entry.value < thresholdSeconds) continue;
+      final date = _parseDate(entry.key);
+      if (date != null) qualifyingDates.add(date);
     }
 
-    if (qualifying.isEmpty) {
-      final completed = books.where((b) => b.isCompleted).length;
-      return StreakResult(
-        currentStreak: 0,
-        longestStreak: 0,
-        totalMinutes: totalSeconds ~/ 60,
-        completedBooks: completed,
-        totalPagesRead: totalPages,
-      );
-    }
+    final longest = _longestRun(qualifyingDates);
+    final current = _currentRun(qualifyingDates);
 
-    final sortedDates = qualifying.toList()..sort();
-    
-    // Calculate longest streak
-    int longest = 1;
-    int currentRun = 1;
-    for (int i = 1; i < sortedDates.length; i++) {
-      final prev = DateTime.parse(sortedDates[i - 1]);
-      final curr = DateTime.parse(sortedDates[i]);
-      if (curr.difference(prev).inDays == 1) {
-        currentRun++;
-      } else {
-        if (currentRun > longest) longest = currentRun;
-        currentRun = 1;
-      }
-    }
-    if (currentRun > longest) longest = currentRun;
-
-    // Calculate current streak (from today backwards)
-    final today = DateTime.now();
-    final todayStr = today.toIso8601String().substring(0, 10);
-    final yesterdayStr = today.subtract(const Duration(days: 1)).toIso8601String().substring(0, 10);
-    
-    int currentStreakCount = 0;
-    if (qualifying.contains(todayStr)) {
-      currentStreakCount = 1;
-      var checkDate = today.subtract(const Duration(days: 1));
-      while (true) {
-        final ds = checkDate.toIso8601String().substring(0, 10);
-        if (qualifying.contains(ds)) {
-          currentStreakCount++;
-          checkDate = checkDate.subtract(const Duration(days: 1));
-        } else {
-          break;
-        }
-      }
-    } else if (qualifying.contains(yesterdayStr)) {
-      currentStreakCount = 1;
-      var checkDate = today.subtract(const Duration(days: 2));
-      while (true) {
-        final ds = checkDate.toIso8601String().substring(0, 10);
-        if (qualifying.contains(ds)) {
-          currentStreakCount++;
-          checkDate = checkDate.subtract(const Duration(days: 1));
-        } else {
-          break;
-        }
-      }
-    } else {
-      currentStreakCount = 0;
-    }
-
-    final completed = books.where((b) => b.isCompleted).length;
     return StreakResult(
-      currentStreak: currentStreakCount,
+      currentStreak: current,
       longestStreak: longest,
       totalMinutes: totalSeconds ~/ 60,
-      completedBooks: completed,
+      completedBooks: completedBooks,
       totalPagesRead: totalPages,
     );
+  }
+
+  /// Longest run of consecutive qualifying days.
+  int _longestRun(Set<DateTime> dates) {
+    if (dates.isEmpty) return 0;
+    final sorted = dates.toList()..sort();
+    int longest = 1;
+    int run = 1;
+    for (int i = 1; i < sorted.length; i++) {
+      if (sorted[i].difference(sorted[i - 1]).inDays == 1) {
+        run++;
+      } else {
+        if (run > longest) longest = run;
+        run = 1;
+      }
+    }
+    return run > longest ? run : longest;
+  }
+
+  /// Current streak from today backwards. Yesterday also keeps the streak
+  /// alive so a user who has not read yet today sees their real streak.
+  int _currentRun(Set<DateTime> dates) {
+    if (dates.isEmpty) return 0;
+
+    final now = _now();
+    var cursor = DateTime.utc(now.year, now.month, now.day);
+
+    if (!dates.contains(cursor)) {
+      cursor = cursor.subtract(const Duration(days: 1));
+      if (!dates.contains(cursor)) return 0;
+    }
+
+    int count = 0;
+    while (dates.contains(cursor)) {
+      count++;
+      cursor = cursor.subtract(const Duration(days: 1));
+    }
+    return count;
+  }
+
+  /// Parses stored `YYYY-MM-DD` keys as UTC dates so day arithmetic is not
+  /// affected by daylight-saving transitions (23/25 hour days).
+  DateTime? _parseDate(String value) {
+    final parts = value.split('-');
+    if (parts.length != 3) return null;
+    final year = int.tryParse(parts[0]);
+    final month = int.tryParse(parts[1]);
+    final day = int.tryParse(parts[2]);
+    if (year == null || month == null || day == null) return null;
+    return DateTime.utc(year, month, day);
   }
 }

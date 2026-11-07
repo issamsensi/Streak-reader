@@ -44,5 +44,19 @@
   "streakGoalHint": "اقرأ {minutes} دقائق اليوم لتحافظ على سلسلتك.",
   "readingOverview": "نظرة عامة على القراءة",
   "appTagline": "قليل من القراءة كل يوم يصنع فرقاً.",
-  "addBookSubtitle": "اختر ملف PDF أو أضفه إلى قائمة \"أريد قراءته\"."
+  "addBookSubtitle": "اختر ملف PDF أو أضفه إلى قائمة \"أريد قراءته\".",
+  "markAsCompleted": "وضع علامة كمكتمل",
+  "markAsUnread": "وضع علامة كغير مقروء",
+  "completed": "مكتمل",
+  "deleteBook": "حذف الكتاب",
+  "deleteBookTitle": "حذف الكتاب؟",
+  "deleteBookBody": "سيتم حذف \"{title}\" وجلسات القراءة الخاصة به نهائياً.",
+  "delete": "حذف",
+  "bookDeleted": "تم حذف الكتاب.",
+  "titleRequired": "يرجى إدخال عنوان الكتاب.",
+  "retry": "إعادة المحاولة",
+  "readerLoadError": "تعذر فتح ملف PDF.",
+  "loadingPdf": "جارٍ تجهيز ملف PDF…",
+  "saveFailed": "تعذر حفظ التغييرات. حاول مرة أخرى.",
+  "deleteFailed": "تعذر حذف الكتاب. حاول مرة أخرى."
 }

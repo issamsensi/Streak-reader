@@ -153,4 +153,48 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get addBookSubtitle =>
       'اختر ملف PDF أو أضفه إلى قائمة \"أريد قراءته\".';
+
+  @override
+  String get markAsCompleted => 'وضع علامة كمكتمل';
+
+  @override
+  String get markAsUnread => 'وضع علامة كغير مقروء';
+
+  @override
+  String get completed => 'مكتمل';
+
+  @override
+  String get deleteBook => 'حذف الكتاب';
+
+  @override
+  String get deleteBookTitle => 'حذف الكتاب؟';
+
+  @override
+  String deleteBookBody(String title) {
+    return 'سيتم حذف \"$title\" وجلسات القراءة الخاصة به نهائياً.';
+  }
+
+  @override
+  String get delete => 'حذف';
+
+  @override
+  String get bookDeleted => 'تم حذف الكتاب.';
+
+  @override
+  String get titleRequired => 'يرجى إدخال عنوان الكتاب.';
+
+  @override
+  String get retry => 'إعادة المحاولة';
+
+  @override
+  String get readerLoadError => 'تعذر فتح ملف PDF.';
+
+  @override
+  String get loadingPdf => 'جارٍ تجهيز ملف PDF…';
+
+  @override
+  String get saveFailed => 'تعذر حفظ التغييرات. حاول مرة أخرى.';
+
+  @override
+  String get deleteFailed => 'تعذر حذف الكتاب. حاول مرة أخرى.';
 }

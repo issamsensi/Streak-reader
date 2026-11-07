@@ -7,3 +7,10 @@ final databaseProvider = Provider<AppDatabase>((ref) {
   ref.onDispose(() => db.close());
   return db;
 });
+
+/// Bumped whenever a reading session is persisted.
+///
+/// The library and statistics providers watch this value so derived data
+/// (last page, totals, streak) refreshes even when a session is saved after
+/// the reader route has already been popped (for example on idle/dispose).
+final dataRevisionProvider = StateProvider<int>((ref) => 0);

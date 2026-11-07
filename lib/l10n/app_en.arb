@@ -65,5 +65,26 @@
   },
   "readingOverview": "Reading overview",
   "appTagline": "A little reading every day adds up.",
-  "addBookSubtitle": "Choose a PDF or save it to your wishlist."
+  "addBookSubtitle": "Choose a PDF or save it to your wishlist.",
+  "markAsCompleted": "Mark as completed",
+  "markAsUnread": "Mark as unread",
+  "completed": "Completed",
+  "deleteBook": "Delete book",
+  "deleteBookTitle": "Delete book?",
+  "deleteBookBody": "This permanently deletes \"{title}\" and its reading sessions.",
+  "@deleteBookBody": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "delete": "Delete",
+  "bookDeleted": "Book deleted.",
+  "titleRequired": "Please enter a book title.",
+  "retry": "Retry",
+  "readerLoadError": "Could not open this PDF.",
+  "loadingPdf": "Preparing PDF…",
+  "saveFailed": "Could not save changes. Please try again.",
+  "deleteFailed": "Could not delete the book. Please try again."
 }

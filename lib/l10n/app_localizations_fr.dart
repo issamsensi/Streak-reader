@@ -155,4 +155,49 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get addBookSubtitle =>
       'Choisissez un PDF ou ajoutez-le à votre liste « À lire ».';
+
+  @override
+  String get markAsCompleted => 'Marquer comme terminé';
+
+  @override
+  String get markAsUnread => 'Marquer comme non lu';
+
+  @override
+  String get completed => 'Terminé';
+
+  @override
+  String get deleteBook => 'Supprimer le livre';
+
+  @override
+  String get deleteBookTitle => 'Supprimer le livre ?';
+
+  @override
+  String deleteBookBody(String title) {
+    return 'Cela supprime définitivement \"$title\" et ses sessions de lecture.';
+  }
+
+  @override
+  String get delete => 'Supprimer';
+
+  @override
+  String get bookDeleted => 'Livre supprimé.';
+
+  @override
+  String get titleRequired => 'Veuillez saisir un titre de livre.';
+
+  @override
+  String get retry => 'Réessayer';
+
+  @override
+  String get readerLoadError => 'Impossible d\'ouvrir ce PDF.';
+
+  @override
+  String get loadingPdf => 'Préparation du PDF…';
+
+  @override
+  String get saveFailed =>
+      'Impossible d\'enregistrer les modifications. Réessayez.';
+
+  @override
+  String get deleteFailed => 'Impossible de supprimer le livre. Réessayez.';
 }
