@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/di/providers.dart';
+import '../../../core/utils/duration_units.dart';
 import '../../../data/datasources/local/app_database.dart';
 
 final readingSessionControllerProvider =
@@ -25,7 +26,9 @@ class ReadingSessionState {
   final int pagesAtStart;
   final int currentPage;
   final int bookId;
-  final int elapsedSeconds;
+
+  /// Completed active time before [activeSegmentStartedAt], in milliseconds.
+  final int elapsedMilliseconds;
   final String readingMode;
 
   const ReadingSessionState({
@@ -37,7 +40,7 @@ class ReadingSessionState {
     required this.pagesAtStart,
     required this.currentPage,
     required this.bookId,
-    required this.elapsedSeconds,
+    required this.elapsedMilliseconds,
     this.readingMode = 'digital',
   });
 
@@ -47,11 +50,14 @@ class ReadingSessionState {
         pagesAtStart: 0,
         currentPage: 0,
         bookId: bookId,
-        elapsedSeconds: 0,
+        elapsedMilliseconds: 0,
         readingMode: 'digital',
       );
 
   bool get hasSession => sessionId != null;
+
+  int get elapsedSeconds =>
+      DurationUnits.millisecondsToSeconds(elapsedMilliseconds);
 
   ReadingSessionState copyWith({
     bool? isActive,
@@ -63,7 +69,7 @@ class ReadingSessionState {
     int? pagesAtStart,
     int? currentPage,
     int? bookId,
-    int? elapsedSeconds,
+    int? elapsedMilliseconds,
     String? readingMode,
   }) {
     return ReadingSessionState(
@@ -77,7 +83,7 @@ class ReadingSessionState {
       pagesAtStart: pagesAtStart ?? this.pagesAtStart,
       currentPage: currentPage ?? this.currentPage,
       bookId: bookId ?? this.bookId,
-      elapsedSeconds: elapsedSeconds ?? this.elapsedSeconds,
+      elapsedMilliseconds: elapsedMilliseconds ?? this.elapsedMilliseconds,
       readingMode: readingMode ?? this.readingMode,
     );
   }
@@ -86,14 +92,23 @@ class ReadingSessionState {
 class ReadingSessionController extends StateNotifier<ReadingSessionState> {
   final AppDatabase db;
   final void Function()? onSessionSaved;
+
+  /// Injectable clock so elapsed-time behaviour can be tested without waiting.
+  final DateTime Function() _now;
+
   Future<void> _sessionReady = Future<void>.value();
-  Future<void> _pendingPersist = Future<void>.value();
+  Future<void> _pendingPageWrite = Future<void>.value();
+  Future<void> _pendingSessionWrite = Future<void>.value();
   Timer? _autosaveTimer;
   bool _isFinishing = false;
   int _lastPersistedPage = 0;
 
-  ReadingSessionController(this.db, {this.onSessionSaved})
-      : super(ReadingSessionState.initial(0));
+  ReadingSessionController(
+    this.db, {
+    this.onSessionSaved,
+    DateTime Function()? now,
+  })  : _now = now ?? DateTime.now,
+        super(ReadingSessionState.initial(0));
 
   bool get isActive => state.isActive;
   bool get isPaused => state.isPaused;
@@ -106,11 +121,20 @@ class ReadingSessionController extends StateNotifier<ReadingSessionState> {
     _lastPersistedPage = page;
   }
 
-  int get elapsedSeconds {
+  int get elapsedMilliseconds => _elapsedMillisecondsAt(_now());
+
+  int get elapsedSeconds =>
+      DurationUnits.millisecondsToSeconds(elapsedMilliseconds);
+
+  /// Timestamp-derived elapsed time. The accumulated value is only advanced
+  /// when a checkpoint is written; reading the getter never mutates anything.
+  int _elapsedMillisecondsAt(DateTime now) {
     final segmentStart = state.activeSegmentStartedAt;
-    if (!state.isActive || segmentStart == null) return state.elapsedSeconds;
-    return state.elapsedSeconds +
-        DateTime.now().difference(segmentStart).inSeconds;
+    if (!state.isActive || segmentStart == null) {
+      return state.elapsedMilliseconds;
+    }
+    final segment = now.difference(segmentStart).inMilliseconds;
+    return state.elapsedMilliseconds + (segment > 0 ? segment : 0);
   }
 
   void start(
@@ -119,7 +143,7 @@ class ReadingSessionController extends StateNotifier<ReadingSessionState> {
     String readingMode = 'digital',
   }) {
     if (state.hasSession) return;
-    final now = DateTime.now();
+    final now = _now();
     _lastPersistedPage = initialPage;
     state = ReadingSessionState(
       isActive: true,
@@ -129,7 +153,7 @@ class ReadingSessionController extends StateNotifier<ReadingSessionState> {
       pagesAtStart: initialPage,
       currentPage: initialPage,
       bookId: bookId,
-      elapsedSeconds: 0,
+      elapsedMilliseconds: 0,
       readingMode: readingMode,
     );
     _sessionReady = db
@@ -147,7 +171,7 @@ class ReadingSessionController extends StateNotifier<ReadingSessionState> {
       ),
     )
         .then((id) {
-      if (!state.hasSession && state.bookId == bookId) {
+      if (mounted && !state.hasSession && state.bookId == bookId) {
         state = state.copyWith(sessionId: id);
       }
     });
@@ -159,72 +183,97 @@ class ReadingSessionController extends StateNotifier<ReadingSessionState> {
     final saved = await db.getActiveSession(bookId);
     if (saved == null || saved.startTime == null) return false;
 
+    final now = _now();
+    final wallClockMilliseconds =
+        now.difference(saved.startTime!).inMilliseconds;
+    final maxMilliseconds =
+        wallClockMilliseconds > 0 ? wallClockMilliseconds : 0;
+    final persistedMilliseconds =
+        DurationUnits.secondsToMilliseconds(saved.durationSeconds);
+    // An in-progress row may have been written by the old, inflating timer.
+    // It can never represent more than the wall-clock lifetime of the session.
+    final accumulatedMilliseconds = persistedMilliseconds > maxMilliseconds
+        ? maxMilliseconds
+        : persistedMilliseconds;
+
     final isPhysical = saved.readingMode == 'physical';
-    final elapsed = (saved.durationSeconds +
-            (isPhysical && saved.activeSegmentStartedAt != null
-                ? DateTime.now()
-                    .difference(saved.activeSegmentStartedAt!)
-                    .inSeconds
-                : 0))
-        .clamp(0, 1 << 31);
+    final hasActiveSegment = saved.activeSegmentStartedAt != null;
+    final continuesPhysicalSegment = isPhysical && hasActiveSegment;
+    final segmentElapsed = continuesPhysicalSegment
+        ? now.difference(saved.activeSegmentStartedAt!).inMilliseconds
+        : 0;
+    final activeElapsed =
+        accumulatedMilliseconds + (segmentElapsed > 0 ? segmentElapsed : 0);
+    final elapsedMilliseconds =
+        activeElapsed > maxMilliseconds ? maxMilliseconds : activeElapsed;
+
     final page = saved.endingPage ?? saved.startingPage ?? fallbackPage;
     state = ReadingSessionState(
-      isActive: isPhysical && saved.activeSegmentStartedAt != null,
-      isPaused: !isPhysical || saved.activeSegmentStartedAt == null,
+      isActive: continuesPhysicalSegment,
+      isPaused: !continuesPhysicalSegment,
       sessionId: saved.id,
       startTime: saved.startTime,
-      activeSegmentStartedAt: isPhysical && saved.activeSegmentStartedAt != null
-          ? DateTime.now()
-          : null,
+      activeSegmentStartedAt: continuesPhysicalSegment ? now : null,
       pagesAtStart: saved.startingPage ?? fallbackPage,
       currentPage: page,
       bookId: bookId,
-      elapsedSeconds: elapsed,
+      elapsedMilliseconds: elapsedMilliseconds,
       readingMode: saved.readingMode,
     );
     _lastPersistedPage = page;
     await db.updateSession(
       saved.id,
-      isPhysical && saved.activeSegmentStartedAt != null
-          ? ReadingSessionsCompanion(
-              durationSeconds: drift.Value(elapsed),
-              activeSegmentStartedAt: drift.Value(DateTime.now()),
-            )
-          : const ReadingSessionsCompanion(
-              activeSegmentStartedAt: drift.Value(null),
-            ),
+      ReadingSessionsCompanion(
+        durationSeconds: drift.Value(
+          DurationUnits.millisecondsToSeconds(elapsedMilliseconds),
+        ),
+        activeSegmentStartedAt: continuesPhysicalSegment
+            ? drift.Value(now)
+            : const drift.Value(null),
+      ),
     );
-    if (isPhysical && saved.activeSegmentStartedAt != null) {
+    if (continuesPhysicalSegment) {
       _startAutosave();
     }
     return true;
   }
 
   Future<void> resume() async {
-    if (!state.hasSession || !state.isPaused || _isFinishing) return;
-    final now = DateTime.now();
+    if (_isFinishing) return;
+    await _sessionReady;
+    if (!mounted || !state.hasSession || !state.isPaused || _isFinishing) {
+      return;
+    }
+    final now = _now();
     state = state.copyWith(
       isActive: true,
       isPaused: false,
       activeSegmentStartedAt: now,
     );
-    await _sessionReady;
-    await db.updateSession(
-      state.sessionId!,
-      ReadingSessionsCompanion(
-        activeSegmentStartedAt: drift.Value(now),
-      ),
-    );
+    await _enqueueSessionWrite(() async {
+      if (!mounted || !state.hasSession) return;
+      await db.updateSession(
+        state.sessionId!,
+        ReadingSessionsCompanion(
+          activeSegmentStartedAt: drift.Value(now),
+        ),
+      );
+    });
     _startAutosave();
   }
 
   Future<void> pause() async {
-    if (!state.hasSession || !state.isActive || _isFinishing) return;
-    final elapsed = elapsedSeconds;
+    if (_isFinishing) return;
+    await _sessionReady;
+    if (!mounted || !state.hasSession || !state.isActive || _isFinishing) {
+      return;
+    }
+    final now = _now();
+    final elapsed = _elapsedMillisecondsAt(now);
     state = state.copyWith(
       isActive: false,
       isPaused: true,
-      elapsedSeconds: elapsed,
+      elapsedMilliseconds: elapsed,
       clearActiveSegmentStartedAt: true,
     );
     await _persistDraft();
@@ -246,14 +295,15 @@ class ReadingSessionController extends StateNotifier<ReadingSessionState> {
   void _queuePersistPage(int bookId, int page) {
     if (bookId <= 0 || page <= 0 || page == _lastPersistedPage) return;
     _lastPersistedPage = page;
-    _pendingPersist = _pendingPersist.then(
+    _pendingPageWrite = _pendingPageWrite.then(
       (_) => db.updateBookLastPage(bookId, page),
     );
   }
 
   Future<void> persistCurrentPage() async {
     _queuePersistPage(state.bookId, state.currentPage);
-    await _pendingPersist;
+    await _pendingPageWrite;
+    await _sessionReady;
     if (state.hasSession) await _persistDraft();
   }
 
@@ -264,26 +314,61 @@ class ReadingSessionController extends StateNotifier<ReadingSessionState> {
     });
   }
 
-  Future<void> _persistDraft() async {
+  Future<void> _enqueueSessionWrite(Future<void> Function() write) {
+    final next = _pendingSessionWrite.then((_) => write());
+    // Keep later writes running even if one write fails.
+    _pendingSessionWrite = next.catchError((Object _) {});
+    return next;
+  }
+
+  Future<void> _persistDraft() {
+    return _enqueueSessionWrite(_writeDraft);
+  }
+
+  Future<void> _writeDraft() async {
     await _sessionReady;
     // The reader may be disposed while a save is in flight (its dispose
     // fires finish() unawaited); touching state afterwards would throw.
     if (!mounted || !state.hasSession || state.startTime == null) return;
-    final elapsed = elapsedSeconds;
+
+    final sessionId = state.sessionId!;
+    final segmentAtStart = state.activeSegmentStartedAt;
+    final wasActive = state.isActive;
+    final now = _now();
+    final elapsedMilliseconds = _elapsedMillisecondsAt(now);
+    final nextSegmentStart = wasActive ? now : null;
+    final pagesRead = getPagesRead();
+    final currentPage = state.currentPage;
+    final readingMode = state.readingMode;
+
     await db.updateSession(
-      state.sessionId!,
+      sessionId,
       ReadingSessionsCompanion(
-        durationSeconds: drift.Value(elapsed),
-        pagesRead: drift.Value(getPagesRead()),
-        endingPage: drift.Value(state.currentPage),
-        readingMode: drift.Value(state.readingMode),
-        activeSegmentStartedAt: drift.Value(
-          state.isActive ? state.activeSegmentStartedAt : null,
+        durationSeconds: drift.Value(
+          DurationUnits.millisecondsToSeconds(elapsedMilliseconds),
         ),
+        pagesRead: drift.Value(pagesRead),
+        endingPage: drift.Value(currentPage),
+        readingMode: drift.Value(readingMode),
+        activeSegmentStartedAt: drift.Value(nextSegmentStart),
       ),
     );
-    if (!mounted) return;
-    state = state.copyWith(elapsedSeconds: elapsed);
+
+    if (!mounted || state.sessionId != sessionId) return;
+    // A pause/resume/finish may have happened while the write was in flight.
+    // Never overwrite that newer state with this checkpoint.
+    if (state.isActive != wasActive ||
+        state.activeSegmentStartedAt != segmentAtStart) {
+      return;
+    }
+
+    // Advance the checkpoint. Without this, the next read would add the whole
+    // active segment again and every autosave would compound the total.
+    state = state.copyWith(
+      elapsedMilliseconds: elapsedMilliseconds,
+      activeSegmentStartedAt: nextSegmentStart,
+      clearActiveSegmentStartedAt: !wasActive,
+    );
   }
 
   int getPagesRead() => state.currentPage <= state.pagesAtStart
@@ -294,25 +379,28 @@ class ReadingSessionController extends StateNotifier<ReadingSessionState> {
 
   Future<void> finish({int? pagesRead, String? note}) async {
     if (_isFinishing) return;
-    await _sessionReady;
-    if (!mounted || !state.hasSession) return;
     _isFinishing = true;
-    _autosaveTimer?.cancel();
-    final sessionId = state.sessionId!;
-    final bookId = state.bookId;
-    final currentPage = state.currentPage;
-    final readingMode = state.readingMode;
-    final startTime = state.startTime;
-    final elapsedAtStart = elapsedSeconds;
     try {
-      await _persistDraft();
-      await _pendingPersist;
-      if (readingMode == 'digital' && bookId > 0 && currentPage > 0) {
-        await db.updateBookLastPage(bookId, currentPage);
-      }
-      final now = DateTime.now();
-      final elapsed = mounted ? elapsedSeconds : elapsedAtStart;
-      if (elapsed <= 0) {
+      await _sessionReady;
+      if (!mounted || !state.hasSession) return;
+      _autosaveTimer?.cancel();
+
+      final sessionId = state.sessionId!;
+      final bookId = state.bookId;
+      final currentPage = state.currentPage;
+      final readingMode = state.readingMode;
+      final startTime = state.startTime;
+      final finalPages = pagesRead ?? getPagesRead();
+
+      await _pendingPageWrite;
+      await _pendingSessionWrite;
+
+      final now = _now();
+      final elapsedMilliseconds = _elapsedMillisecondsAt(now);
+      final elapsedSeconds =
+          DurationUnits.millisecondsToSeconds(elapsedMilliseconds);
+
+      if (elapsedSeconds <= 0) {
         await db.deleteSession(sessionId);
         if (!mounted) return;
         state = ReadingSessionState(
@@ -322,16 +410,18 @@ class ReadingSessionController extends StateNotifier<ReadingSessionState> {
           pagesAtStart: currentPage,
           currentPage: currentPage,
           bookId: bookId,
-          elapsedSeconds: 0,
+          elapsedMilliseconds: 0,
+          readingMode: readingMode,
         );
         return;
       }
+
       await db.updateSession(
         sessionId,
         ReadingSessionsCompanion(
           date: drift.Value(DateFormat('yyyy-MM-dd').format(now)),
-          durationSeconds: drift.Value(elapsed),
-          pagesRead: drift.Value(pagesRead ?? getPagesRead()),
+          durationSeconds: drift.Value(elapsedSeconds),
+          pagesRead: drift.Value(finalPages),
           note: drift.Value(note?.trim().isEmpty == true ? null : note?.trim()),
           readingMode: drift.Value(readingMode),
           endingPage: drift.Value(currentPage),
@@ -339,6 +429,9 @@ class ReadingSessionController extends StateNotifier<ReadingSessionState> {
           activeSegmentStartedAt: const drift.Value(null),
         ),
       );
+      if (readingMode == 'digital' && bookId > 0 && currentPage > 0) {
+        await db.updateBookLastPage(bookId, currentPage);
+      }
       if (!mounted) return;
       state = ReadingSessionState(
         isActive: false,
@@ -347,7 +440,8 @@ class ReadingSessionController extends StateNotifier<ReadingSessionState> {
         pagesAtStart: currentPage,
         currentPage: currentPage,
         bookId: bookId,
-        elapsedSeconds: elapsed,
+        elapsedMilliseconds: elapsedMilliseconds,
+        readingMode: readingMode,
       );
       onSessionSaved?.call();
     } finally {

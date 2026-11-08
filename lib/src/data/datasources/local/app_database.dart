@@ -31,7 +31,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -84,6 +84,13 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(books, books.completionDate);
             await m.addColumn(books, books.addedAsPreviouslyCompleted);
             await m.createTable(bookCompletions);
+          }
+          if (from < 11) {
+            // Older builds compounded elapsed time on every autosave. Finished
+            // sessions can never contain more active time than their own
+            // start/end window, so cap only the impossible records while
+            // preserving everything that is recoverable.
+            await repairInflatedReadingDurations();
           }
         },
       );
@@ -160,9 +167,8 @@ class AppDatabase extends _$AppDatabase {
         completionDate: completionDate == null
             ? const Value.absent()
             : Value(completionDate),
-        addedAsPreviouslyCompleted: historical == null
-            ? const Value.absent()
-            : Value(historical),
+        addedAsPreviouslyCompleted:
+            historical == null ? const Value.absent() : Value(historical),
       ),
     );
     if (status == 'completed' && current?.readingStatus != 'completed') {
@@ -218,15 +224,47 @@ class AppDatabase extends _$AppDatabase {
     int id,
     ReadingSessionsCompanion session,
   ) async {
-    final updated =
-        await (update(readingSessions)..where((tbl) => tbl.id.equals(id)))
-            .write(session);
+    final updated = await (update(readingSessions)
+          ..where((tbl) => tbl.id.equals(id)))
+        .write(session);
     if (updated > 0) await _queueSession(id);
     return updated > 0;
   }
 
   Future<int> deleteSession(int id) =>
       (delete(readingSessions)..where((tbl) => tbl.id.equals(id))).go();
+
+  /// Repairs historical sessions whose persisted duration is larger than the
+  /// wall-clock window in which the session existed.
+  ///
+  /// The old timer wrote an inflated cumulative value on every autosave, but
+  /// active reading can never exceed `endTime - startTime`. Capping such rows
+  /// keeps the recoverable upper bound instead of deleting user history.
+  /// Sessions without both timestamps (legacy records) are left untouched.
+  Future<int> repairInflatedReadingDurations({bool enqueueSync = true}) async {
+    final rows = await select(readingSessions).get();
+    var repaired = 0;
+    for (final session in rows) {
+      final start = session.startTime;
+      final end = session.endTime;
+      if (start == null || end == null) continue;
+      final wallClockSeconds = end.difference(start).inSeconds;
+      if (wallClockSeconds < 0) continue;
+      if (session.durationSeconds <= wallClockSeconds) continue;
+
+      await (update(readingSessions)
+            ..where((table) => table.id.equals(session.id)))
+          .write(
+        ReadingSessionsCompanion(
+          durationSeconds: Value(wallClockSeconds),
+        ),
+      );
+      repaired++;
+      if (enqueueSync) await _queueSession(session.id);
+    }
+    return repaired;
+  }
+
   Future<List<ReadingSession>> getSessionsForDate(String date) =>
       (select(readingSessions)..where((tbl) => tbl.date.equals(date))).get();
   Future<List<ReadingSession>> getSessionsForBook(int bookId) =>
@@ -528,33 +566,49 @@ class AppDatabase extends _$AppDatabase {
       }
     } else if (entityType == 'reading_session') {
       final id = data['id'] as int;
+      final startTime = data['startTime'] == null
+          ? null
+          : DateTime.parse(data['startTime'] as String);
+      final endTime = data['endTime'] == null
+          ? null
+          : DateTime.parse(data['endTime'] as String);
+      final remoteSeconds = data['durationSeconds'] as int;
       await into(readingSessions).insertOnConflictUpdate(
         ReadingSessionsCompanion(
           id: Value(id),
           bookId: Value(data['bookId'] as int),
           date: Value(
             data['date'] as String? ??
-                (data['startTime'] == null
+                (startTime == null
                     ? ''
-                    : DateTime.parse(data['startTime'] as String)
-                        .toIso8601String()
-                        .substring(0, 10)),
+                    : startTime.toIso8601String().substring(0, 10)),
           ),
-          durationSeconds: Value(data['durationSeconds'] as int),
+          durationSeconds: Value(
+            _sanitizeSessionDuration(remoteSeconds, startTime, endTime),
+          ),
           pagesRead: Value(data['pagesRead'] as int? ?? 0),
           startingPage: Value(data['startingPage'] as int?),
           endingPage: Value(data['endingPage'] as int?),
           readingMode: Value(data['readingMode'] as String? ?? 'digital'),
           note: Value(data['note'] as String?),
-          startTime: Value(data['startTime'] == null
-              ? null
-              : DateTime.parse(data['startTime'] as String)),
-          endTime: Value(data['endTime'] == null
-              ? null
-              : DateTime.parse(data['endTime'] as String)),
+          startTime: Value(startTime),
+          endTime: Value(endTime),
         ),
       );
     }
+  }
+
+  /// Prevents an inflated remote payload from re-introducing impossible
+  /// durations after the local repair has run.
+  int _sanitizeSessionDuration(
+    int seconds,
+    DateTime? startTime,
+    DateTime? endTime,
+  ) {
+    if (seconds <= 0 || startTime == null || endTime == null) return seconds;
+    final wallClockSeconds = endTime.difference(startTime).inSeconds;
+    if (wallClockSeconds < 0) return seconds;
+    return seconds > wallClockSeconds ? wallClockSeconds : seconds;
   }
 
   Future<void> markSyncRecordsUploaded(Iterable<int> ids) async {

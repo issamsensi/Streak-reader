@@ -44,6 +44,7 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen>
   // Cached in initState so dispose() never touches `ref` after unmount.
   ReadingSessionController? _sessionController;
   bool _sessionReady = false;
+  bool _resumeSessionOnForeground = false;
   List<Bookmark> _bookmarks = const [];
   List<Highlight> _highlights = const [];
   List<Note> _notes = const [];
@@ -426,10 +427,20 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen>
         state == AppLifecycleState.hidden) {
       final controller = _sessionController;
       if (controller != null) {
+        // Remember only an automatic pause. A manual pause should stay paused
+        // when the user returns to the app.
+        if (controller.isActive) _resumeSessionOnForeground = true;
         unawaited(controller.pause());
         unawaited(controller.persistCurrentPage());
       }
     } else if (state == AppLifecycleState.resumed) {
+      final controller = _sessionController;
+      final shouldResume = _resumeSessionOnForeground &&
+          controller != null &&
+          controller.hasSession &&
+          !controller.isActive;
+      _resumeSessionOnForeground = false;
+      if (shouldResume) unawaited(controller.resume());
       // Restore immersive/normal system bars after rotation, unlocking, or
       // returning from another app; mode and controls state are kept.
       _applySystemUi();
