@@ -89,6 +89,16 @@ class _PhysicalReaderScreenState extends ConsumerState<PhysicalReaderScreen>
   void dispose() {
     _ticker?.cancel();
     WidgetsBinding.instance.removeObserver(this);
+    final controller = _controller;
+    if (controller != null &&
+        controller.hasSession &&
+        controller.isActive &&
+        controller.sessionBookId == widget.bookId) {
+      // Leaving the physical reader screen should not leave a global session
+      // running in the background. Pause checkpoints elapsed time; the session
+      // remains restorable if the user returns.
+      unawaited(controller.pause());
+    }
     super.dispose();
   }
 

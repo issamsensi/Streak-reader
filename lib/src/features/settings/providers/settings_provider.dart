@@ -249,6 +249,29 @@ class SettingsController extends StateNotifier<AppSettings> {
     await prefs.setString(_completedBookHistoryKey, jsonEncode(serializable));
   }
 
+  Future<void> removeBookCompletion(int bookId, DateTime date) async {
+    if (bookId <= 0) return;
+    final key = MonthlyGoalHistory.monthKey(date);
+    final current = state.completedBookHistory[key];
+    if (current == null || !current.contains(bookId)) return;
+    final history = {
+      for (final entry in state.completedBookHistory.entries)
+        entry.key: {...entry.value},
+    };
+    final updated = {...?history[key]}..remove(bookId);
+    if (updated.isEmpty) {
+      history.remove(key);
+    } else {
+      history[key] = updated;
+    }
+    state = state.copyWith(completedBookHistory: history);
+    final serializable = {
+      for (final entry in history.entries) entry.key: entry.value.toList(),
+    };
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_completedBookHistoryKey, jsonEncode(serializable));
+  }
+
   Future<void> setReadingReminder(ReadingReminderSettings reminder) async {
     if (reminder.days.isEmpty && reminder.enabled) return;
     state = state.copyWith(readingReminder: reminder);

@@ -54,6 +54,8 @@ class ReadingStatistics {
   final List<ReadingActivityPoint> yearlyActivity;
   final List<DailyReadingHistoryEntry> dailyHistory;
   final List<BookReadingProgress> bookProgress;
+  /// Total seconds in the calendar month before [fromRecords]' `now` month.
+  final int previousMonthSeconds;
 
   const ReadingStatistics({
     this.currentlyReadingBooks = 0,
@@ -67,6 +69,7 @@ class ReadingStatistics {
     this.yearlyActivity = const [],
     this.dailyHistory = const [],
     this.bookProgress = const [],
+    this.previousMonthSeconds = 0,
   });
 
   double get consistencyPercentage {
@@ -184,6 +187,12 @@ class ReadingStatistics {
         .toList()
       ..sort((a, b) => b.secondsRead.compareTo(a.secondsRead));
 
+    final previousMonth = currentMonth == 1
+        ? DateTime.utc(currentYear - 1, 12)
+        : DateTime.utc(currentYear, currentMonth - 1);
+    final previousMonthSeconds =
+        _sumMonth(secondsByDate, previousMonth.year, previousMonth.month);
+
     return ReadingStatistics(
       currentlyReadingBooks: books
           .where((book) =>
@@ -200,6 +209,7 @@ class ReadingStatistics {
       yearlyActivity: yearly,
       dailyHistory: dailyHistory,
       bookProgress: progress,
+      previousMonthSeconds: previousMonthSeconds,
     );
   }
 

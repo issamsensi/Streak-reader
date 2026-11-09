@@ -39,8 +39,7 @@ class GenerateReadingInsights {
       0,
       (sum, point) => sum + point.seconds,
     );
-    final previousMonthSeconds =
-        now.month == 1 ? 0 : statistics.yearlyActivity[now.month - 2].seconds;
+    final previousMonthSeconds = statistics.previousMonthSeconds;
     final activeDays = recent.where((entry) => entry.seconds > 0).length;
     final consistency = recent.isEmpty ? 0.0 : activeDays / recent.length;
     final totalPages =

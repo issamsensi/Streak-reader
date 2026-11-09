@@ -17,6 +17,13 @@ class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
       requiredDuringInsert: false,
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  static const VerificationMeta _syncIdMeta = const VerificationMeta('syncId');
+  @override
+  late final GeneratedColumn<String> syncId = GeneratedColumn<String>(
+      'sync_id', aliasedName, true,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      clientDefault: SyncId.generate);
   static const VerificationMeta _titleMeta = const VerificationMeta('title');
   @override
   late final GeneratedColumn<String> title = GeneratedColumn<String>(
@@ -116,6 +123,7 @@ class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
   @override
   List<GeneratedColumn> get $columns => [
         id,
+        syncId,
         title,
         author,
         totalPages,
@@ -143,6 +151,10 @@ class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('sync_id')) {
+      context.handle(_syncIdMeta,
+          syncId.isAcceptableOrUnknown(data['sync_id']!, _syncIdMeta));
     }
     if (data.containsKey('title')) {
       context.handle(
@@ -221,11 +233,17 @@ class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+        {syncId},
+      ];
+  @override
   Book map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return Book(
       id: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      syncId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}sync_id']),
       title: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}title'])!,
       author: attachedDatabase.typeMapping
@@ -266,6 +284,9 @@ class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
 
 class Book extends DataClass implements Insertable<Book> {
   final int id;
+
+  /// Stable cross-device identity for cloud sync. Local UI/FKs still use [id].
+  final String? syncId;
   final String title;
   final String? author;
   final int? totalPages;
@@ -282,6 +303,7 @@ class Book extends DataClass implements Insertable<Book> {
   final DateTime createdAt;
   const Book(
       {required this.id,
+      this.syncId,
       required this.title,
       this.author,
       this.totalPages,
@@ -300,6 +322,9 @@ class Book extends DataClass implements Insertable<Book> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
+    if (!nullToAbsent || syncId != null) {
+      map['sync_id'] = Variable<String>(syncId);
+    }
     map['title'] = Variable<String>(title);
     if (!nullToAbsent || author != null) {
       map['author'] = Variable<String>(author);
@@ -337,6 +362,8 @@ class Book extends DataClass implements Insertable<Book> {
   BooksCompanion toCompanion(bool nullToAbsent) {
     return BooksCompanion(
       id: Value(id),
+      syncId:
+          syncId == null && nullToAbsent ? const Value.absent() : Value(syncId),
       title: Value(title),
       author:
           author == null && nullToAbsent ? const Value.absent() : Value(author),
@@ -374,6 +401,7 @@ class Book extends DataClass implements Insertable<Book> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return Book(
       id: serializer.fromJson<int>(json['id']),
+      syncId: serializer.fromJson<String?>(json['syncId']),
       title: serializer.fromJson<String>(json['title']),
       author: serializer.fromJson<String?>(json['author']),
       totalPages: serializer.fromJson<int?>(json['totalPages']),
@@ -396,6 +424,7 @@ class Book extends DataClass implements Insertable<Book> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
+      'syncId': serializer.toJson<String?>(syncId),
       'title': serializer.toJson<String>(title),
       'author': serializer.toJson<String?>(author),
       'totalPages': serializer.toJson<int?>(totalPages),
@@ -416,6 +445,7 @@ class Book extends DataClass implements Insertable<Book> {
 
   Book copyWith(
           {int? id,
+          Value<String?> syncId = const Value.absent(),
           String? title,
           Value<String?> author = const Value.absent(),
           Value<int?> totalPages = const Value.absent(),
@@ -432,6 +462,7 @@ class Book extends DataClass implements Insertable<Book> {
           DateTime? createdAt}) =>
       Book(
         id: id ?? this.id,
+        syncId: syncId.present ? syncId.value : this.syncId,
         title: title ?? this.title,
         author: author.present ? author.value : this.author,
         totalPages: totalPages.present ? totalPages.value : this.totalPages,
@@ -452,6 +483,7 @@ class Book extends DataClass implements Insertable<Book> {
   Book copyWithCompanion(BooksCompanion data) {
     return Book(
       id: data.id.present ? data.id.value : this.id,
+      syncId: data.syncId.present ? data.syncId.value : this.syncId,
       title: data.title.present ? data.title.value : this.title,
       author: data.author.present ? data.author.value : this.author,
       totalPages:
@@ -482,6 +514,7 @@ class Book extends DataClass implements Insertable<Book> {
   String toString() {
     return (StringBuffer('Book(')
           ..write('id: $id, ')
+          ..write('syncId: $syncId, ')
           ..write('title: $title, ')
           ..write('author: $author, ')
           ..write('totalPages: $totalPages, ')
@@ -503,6 +536,7 @@ class Book extends DataClass implements Insertable<Book> {
   @override
   int get hashCode => Object.hash(
       id,
+      syncId,
       title,
       author,
       totalPages,
@@ -522,6 +556,7 @@ class Book extends DataClass implements Insertable<Book> {
       identical(this, other) ||
       (other is Book &&
           other.id == this.id &&
+          other.syncId == this.syncId &&
           other.title == this.title &&
           other.author == this.author &&
           other.totalPages == this.totalPages &&
@@ -540,6 +575,7 @@ class Book extends DataClass implements Insertable<Book> {
 
 class BooksCompanion extends UpdateCompanion<Book> {
   final Value<int> id;
+  final Value<String?> syncId;
   final Value<String> title;
   final Value<String?> author;
   final Value<int?> totalPages;
@@ -556,6 +592,7 @@ class BooksCompanion extends UpdateCompanion<Book> {
   final Value<DateTime> createdAt;
   const BooksCompanion({
     this.id = const Value.absent(),
+    this.syncId = const Value.absent(),
     this.title = const Value.absent(),
     this.author = const Value.absent(),
     this.totalPages = const Value.absent(),
@@ -573,6 +610,7 @@ class BooksCompanion extends UpdateCompanion<Book> {
   });
   BooksCompanion.insert({
     this.id = const Value.absent(),
+    this.syncId = const Value.absent(),
     required String title,
     this.author = const Value.absent(),
     this.totalPages = const Value.absent(),
@@ -590,6 +628,7 @@ class BooksCompanion extends UpdateCompanion<Book> {
   }) : title = Value(title);
   static Insertable<Book> custom({
     Expression<int>? id,
+    Expression<String>? syncId,
     Expression<String>? title,
     Expression<String>? author,
     Expression<int>? totalPages,
@@ -607,6 +646,7 @@ class BooksCompanion extends UpdateCompanion<Book> {
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
+      if (syncId != null) 'sync_id': syncId,
       if (title != null) 'title': title,
       if (author != null) 'author': author,
       if (totalPages != null) 'total_pages': totalPages,
@@ -627,6 +667,7 @@ class BooksCompanion extends UpdateCompanion<Book> {
 
   BooksCompanion copyWith(
       {Value<int>? id,
+      Value<String?>? syncId,
       Value<String>? title,
       Value<String?>? author,
       Value<int?>? totalPages,
@@ -643,6 +684,7 @@ class BooksCompanion extends UpdateCompanion<Book> {
       Value<DateTime>? createdAt}) {
     return BooksCompanion(
       id: id ?? this.id,
+      syncId: syncId ?? this.syncId,
       title: title ?? this.title,
       author: author ?? this.author,
       totalPages: totalPages ?? this.totalPages,
@@ -666,6 +708,9 @@ class BooksCompanion extends UpdateCompanion<Book> {
     final map = <String, Expression>{};
     if (id.present) {
       map['id'] = Variable<int>(id.value);
+    }
+    if (syncId.present) {
+      map['sync_id'] = Variable<String>(syncId.value);
     }
     if (title.present) {
       map['title'] = Variable<String>(title.value);
@@ -717,6 +762,7 @@ class BooksCompanion extends UpdateCompanion<Book> {
   String toString() {
     return (StringBuffer('BooksCompanion(')
           ..write('id: $id, ')
+          ..write('syncId: $syncId, ')
           ..write('title: $title, ')
           ..write('author: $author, ')
           ..write('totalPages: $totalPages, ')
@@ -1018,6 +1064,13 @@ class $ReadingSessionsTable extends ReadingSessions
       requiredDuringInsert: false,
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  static const VerificationMeta _syncIdMeta = const VerificationMeta('syncId');
+  @override
+  late final GeneratedColumn<String> syncId = GeneratedColumn<String>(
+      'sync_id', aliasedName, true,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      clientDefault: SyncId.generate);
   static const VerificationMeta _bookIdMeta = const VerificationMeta('bookId');
   @override
   late final GeneratedColumn<int> bookId = GeneratedColumn<int>(
@@ -1091,6 +1144,7 @@ class $ReadingSessionsTable extends ReadingSessions
   @override
   List<GeneratedColumn> get $columns => [
         id,
+        syncId,
         bookId,
         date,
         durationSeconds,
@@ -1115,6 +1169,10 @@ class $ReadingSessionsTable extends ReadingSessions
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('sync_id')) {
+      context.handle(_syncIdMeta,
+          syncId.isAcceptableOrUnknown(data['sync_id']!, _syncIdMeta));
     }
     if (data.containsKey('book_id')) {
       context.handle(_bookIdMeta,
@@ -1182,11 +1240,17 @@ class $ReadingSessionsTable extends ReadingSessions
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+        {syncId},
+      ];
+  @override
   ReadingSession map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return ReadingSession(
       id: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      syncId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}sync_id']),
       bookId: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}book_id'])!,
       date: attachedDatabase.typeMapping
@@ -1221,6 +1285,9 @@ class $ReadingSessionsTable extends ReadingSessions
 
 class ReadingSession extends DataClass implements Insertable<ReadingSession> {
   final int id;
+
+  /// Stable cross-device identity for cloud sync. Local UI/FKs still use [id].
+  final String? syncId;
   final int bookId;
   final String date;
   final int durationSeconds;
@@ -1234,6 +1301,7 @@ class ReadingSession extends DataClass implements Insertable<ReadingSession> {
   final String? note;
   const ReadingSession(
       {required this.id,
+      this.syncId,
       required this.bookId,
       required this.date,
       required this.durationSeconds,
@@ -1249,6 +1317,9 @@ class ReadingSession extends DataClass implements Insertable<ReadingSession> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
+    if (!nullToAbsent || syncId != null) {
+      map['sync_id'] = Variable<String>(syncId);
+    }
     map['book_id'] = Variable<int>(bookId);
     map['date'] = Variable<String>(date);
     map['duration_seconds'] = Variable<int>(durationSeconds);
@@ -1279,6 +1350,8 @@ class ReadingSession extends DataClass implements Insertable<ReadingSession> {
   ReadingSessionsCompanion toCompanion(bool nullToAbsent) {
     return ReadingSessionsCompanion(
       id: Value(id),
+      syncId:
+          syncId == null && nullToAbsent ? const Value.absent() : Value(syncId),
       bookId: Value(bookId),
       date: Value(date),
       durationSeconds: Value(durationSeconds),
@@ -1308,6 +1381,7 @@ class ReadingSession extends DataClass implements Insertable<ReadingSession> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return ReadingSession(
       id: serializer.fromJson<int>(json['id']),
+      syncId: serializer.fromJson<String?>(json['syncId']),
       bookId: serializer.fromJson<int>(json['bookId']),
       date: serializer.fromJson<String>(json['date']),
       durationSeconds: serializer.fromJson<int>(json['durationSeconds']),
@@ -1327,6 +1401,7 @@ class ReadingSession extends DataClass implements Insertable<ReadingSession> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
+      'syncId': serializer.toJson<String?>(syncId),
       'bookId': serializer.toJson<int>(bookId),
       'date': serializer.toJson<String>(date),
       'durationSeconds': serializer.toJson<int>(durationSeconds),
@@ -1344,6 +1419,7 @@ class ReadingSession extends DataClass implements Insertable<ReadingSession> {
 
   ReadingSession copyWith(
           {int? id,
+          Value<String?> syncId = const Value.absent(),
           int? bookId,
           String? date,
           int? durationSeconds,
@@ -1357,6 +1433,7 @@ class ReadingSession extends DataClass implements Insertable<ReadingSession> {
           Value<String?> note = const Value.absent()}) =>
       ReadingSession(
         id: id ?? this.id,
+        syncId: syncId.present ? syncId.value : this.syncId,
         bookId: bookId ?? this.bookId,
         date: date ?? this.date,
         durationSeconds: durationSeconds ?? this.durationSeconds,
@@ -1375,6 +1452,7 @@ class ReadingSession extends DataClass implements Insertable<ReadingSession> {
   ReadingSession copyWithCompanion(ReadingSessionsCompanion data) {
     return ReadingSession(
       id: data.id.present ? data.id.value : this.id,
+      syncId: data.syncId.present ? data.syncId.value : this.syncId,
       bookId: data.bookId.present ? data.bookId.value : this.bookId,
       date: data.date.present ? data.date.value : this.date,
       durationSeconds: data.durationSeconds.present
@@ -1401,6 +1479,7 @@ class ReadingSession extends DataClass implements Insertable<ReadingSession> {
   String toString() {
     return (StringBuffer('ReadingSession(')
           ..write('id: $id, ')
+          ..write('syncId: $syncId, ')
           ..write('bookId: $bookId, ')
           ..write('date: $date, ')
           ..write('durationSeconds: $durationSeconds, ')
@@ -1419,6 +1498,7 @@ class ReadingSession extends DataClass implements Insertable<ReadingSession> {
   @override
   int get hashCode => Object.hash(
       id,
+      syncId,
       bookId,
       date,
       durationSeconds,
@@ -1435,6 +1515,7 @@ class ReadingSession extends DataClass implements Insertable<ReadingSession> {
       identical(this, other) ||
       (other is ReadingSession &&
           other.id == this.id &&
+          other.syncId == this.syncId &&
           other.bookId == this.bookId &&
           other.date == this.date &&
           other.durationSeconds == this.durationSeconds &&
@@ -1450,6 +1531,7 @@ class ReadingSession extends DataClass implements Insertable<ReadingSession> {
 
 class ReadingSessionsCompanion extends UpdateCompanion<ReadingSession> {
   final Value<int> id;
+  final Value<String?> syncId;
   final Value<int> bookId;
   final Value<String> date;
   final Value<int> durationSeconds;
@@ -1463,6 +1545,7 @@ class ReadingSessionsCompanion extends UpdateCompanion<ReadingSession> {
   final Value<String?> note;
   const ReadingSessionsCompanion({
     this.id = const Value.absent(),
+    this.syncId = const Value.absent(),
     this.bookId = const Value.absent(),
     this.date = const Value.absent(),
     this.durationSeconds = const Value.absent(),
@@ -1477,6 +1560,7 @@ class ReadingSessionsCompanion extends UpdateCompanion<ReadingSession> {
   });
   ReadingSessionsCompanion.insert({
     this.id = const Value.absent(),
+    this.syncId = const Value.absent(),
     required int bookId,
     required String date,
     required int durationSeconds,
@@ -1493,6 +1577,7 @@ class ReadingSessionsCompanion extends UpdateCompanion<ReadingSession> {
         durationSeconds = Value(durationSeconds);
   static Insertable<ReadingSession> custom({
     Expression<int>? id,
+    Expression<String>? syncId,
     Expression<int>? bookId,
     Expression<String>? date,
     Expression<int>? durationSeconds,
@@ -1507,6 +1592,7 @@ class ReadingSessionsCompanion extends UpdateCompanion<ReadingSession> {
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
+      if (syncId != null) 'sync_id': syncId,
       if (bookId != null) 'book_id': bookId,
       if (date != null) 'date': date,
       if (durationSeconds != null) 'duration_seconds': durationSeconds,
@@ -1524,6 +1610,7 @@ class ReadingSessionsCompanion extends UpdateCompanion<ReadingSession> {
 
   ReadingSessionsCompanion copyWith(
       {Value<int>? id,
+      Value<String?>? syncId,
       Value<int>? bookId,
       Value<String>? date,
       Value<int>? durationSeconds,
@@ -1537,6 +1624,7 @@ class ReadingSessionsCompanion extends UpdateCompanion<ReadingSession> {
       Value<String?>? note}) {
     return ReadingSessionsCompanion(
       id: id ?? this.id,
+      syncId: syncId ?? this.syncId,
       bookId: bookId ?? this.bookId,
       date: date ?? this.date,
       durationSeconds: durationSeconds ?? this.durationSeconds,
@@ -1557,6 +1645,9 @@ class ReadingSessionsCompanion extends UpdateCompanion<ReadingSession> {
     final map = <String, Expression>{};
     if (id.present) {
       map['id'] = Variable<int>(id.value);
+    }
+    if (syncId.present) {
+      map['sync_id'] = Variable<String>(syncId.value);
     }
     if (bookId.present) {
       map['book_id'] = Variable<int>(bookId.value);
@@ -1599,6 +1690,7 @@ class ReadingSessionsCompanion extends UpdateCompanion<ReadingSession> {
   String toString() {
     return (StringBuffer('ReadingSessionsCompanion(')
           ..write('id: $id, ')
+          ..write('syncId: $syncId, ')
           ..write('bookId: $bookId, ')
           ..write('date: $date, ')
           ..write('durationSeconds: $durationSeconds, ')
@@ -4308,6 +4400,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
 
 typedef $$BooksTableCreateCompanionBuilder = BooksCompanion Function({
   Value<int> id,
+  Value<String?> syncId,
   required String title,
   Value<String?> author,
   Value<int?> totalPages,
@@ -4325,6 +4418,7 @@ typedef $$BooksTableCreateCompanionBuilder = BooksCompanion Function({
 });
 typedef $$BooksTableUpdateCompanionBuilder = BooksCompanion Function({
   Value<int> id,
+  Value<String?> syncId,
   Value<String> title,
   Value<String?> author,
   Value<int?> totalPages,
@@ -4388,6 +4482,9 @@ class $$BooksTableFilterComposer extends Composer<_$AppDatabase, $BooksTable> {
   });
   ColumnFilters<int> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get syncId => $composableBuilder(
+      column: $table.syncId, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get title => $composableBuilder(
       column: $table.title, builder: (column) => ColumnFilters(column));
@@ -4488,6 +4585,9 @@ class $$BooksTableOrderingComposer
   ColumnOrderings<int> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get syncId => $composableBuilder(
+      column: $table.syncId, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get title => $composableBuilder(
       column: $table.title, builder: (column) => ColumnOrderings(column));
 
@@ -4545,6 +4645,9 @@ class $$BooksTableAnnotationComposer
   });
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get syncId =>
+      $composableBuilder(column: $table.syncId, builder: (column) => column);
 
   GeneratedColumn<String> get title =>
       $composableBuilder(column: $table.title, builder: (column) => column);
@@ -4656,6 +4759,7 @@ class $$BooksTableTableManager extends RootTableManager<
               $$BooksTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback: ({
             Value<int> id = const Value.absent(),
+            Value<String?> syncId = const Value.absent(),
             Value<String> title = const Value.absent(),
             Value<String?> author = const Value.absent(),
             Value<int?> totalPages = const Value.absent(),
@@ -4673,6 +4777,7 @@ class $$BooksTableTableManager extends RootTableManager<
           }) =>
               BooksCompanion(
             id: id,
+            syncId: syncId,
             title: title,
             author: author,
             totalPages: totalPages,
@@ -4690,6 +4795,7 @@ class $$BooksTableTableManager extends RootTableManager<
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
+            Value<String?> syncId = const Value.absent(),
             required String title,
             Value<String?> author = const Value.absent(),
             Value<int?> totalPages = const Value.absent(),
@@ -4707,6 +4813,7 @@ class $$BooksTableTableManager extends RootTableManager<
           }) =>
               BooksCompanion.insert(
             id: id,
+            syncId: syncId,
             title: title,
             author: author,
             totalPages: totalPages,
@@ -5041,6 +5148,7 @@ typedef $$BookCompletionsTableProcessedTableManager = ProcessedTableManager<
 typedef $$ReadingSessionsTableCreateCompanionBuilder = ReadingSessionsCompanion
     Function({
   Value<int> id,
+  Value<String?> syncId,
   required int bookId,
   required String date,
   required int durationSeconds,
@@ -5056,6 +5164,7 @@ typedef $$ReadingSessionsTableCreateCompanionBuilder = ReadingSessionsCompanion
 typedef $$ReadingSessionsTableUpdateCompanionBuilder = ReadingSessionsCompanion
     Function({
   Value<int> id,
+  Value<String?> syncId,
   Value<int> bookId,
   Value<String> date,
   Value<int> durationSeconds,
@@ -5100,6 +5209,9 @@ class $$ReadingSessionsTableFilterComposer
   });
   ColumnFilters<int> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get syncId => $composableBuilder(
+      column: $table.syncId, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get date => $composableBuilder(
       column: $table.date, builder: (column) => ColumnFilters(column));
@@ -5166,6 +5278,9 @@ class $$ReadingSessionsTableOrderingComposer
   ColumnOrderings<int> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get syncId => $composableBuilder(
+      column: $table.syncId, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get date => $composableBuilder(
       column: $table.date, builder: (column) => ColumnOrderings(column));
 
@@ -5231,6 +5346,9 @@ class $$ReadingSessionsTableAnnotationComposer
   });
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get syncId =>
+      $composableBuilder(column: $table.syncId, builder: (column) => column);
 
   GeneratedColumn<String> get date =>
       $composableBuilder(column: $table.date, builder: (column) => column);
@@ -5308,6 +5426,7 @@ class $$ReadingSessionsTableTableManager extends RootTableManager<
               $$ReadingSessionsTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback: ({
             Value<int> id = const Value.absent(),
+            Value<String?> syncId = const Value.absent(),
             Value<int> bookId = const Value.absent(),
             Value<String> date = const Value.absent(),
             Value<int> durationSeconds = const Value.absent(),
@@ -5322,6 +5441,7 @@ class $$ReadingSessionsTableTableManager extends RootTableManager<
           }) =>
               ReadingSessionsCompanion(
             id: id,
+            syncId: syncId,
             bookId: bookId,
             date: date,
             durationSeconds: durationSeconds,
@@ -5336,6 +5456,7 @@ class $$ReadingSessionsTableTableManager extends RootTableManager<
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
+            Value<String?> syncId = const Value.absent(),
             required int bookId,
             required String date,
             required int durationSeconds,
@@ -5350,6 +5471,7 @@ class $$ReadingSessionsTableTableManager extends RootTableManager<
           }) =>
               ReadingSessionsCompanion.insert(
             id: id,
+            syncId: syncId,
             bookId: bookId,
             date: date,
             durationSeconds: durationSeconds,

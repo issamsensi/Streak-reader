@@ -9,6 +9,7 @@ import 'package:streak_reader/src/data/datasources/local/app_database.dart';
 const _allColumns = <String, Set<String>>{
   'books': {
     'id',
+    'sync_id',
     'title',
     'author',
     'total_pages',
@@ -26,6 +27,7 @@ const _allColumns = <String, Set<String>>{
   },
   'reading_sessions': {
     'id',
+    'sync_id',
     'book_id',
     'date',
     'duration_seconds',
@@ -96,6 +98,7 @@ const _introducedAt = <String, int>{
 String _booksDdl(int version) {
   final columns = <String>[
     '"id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT',
+    if (version >= 12) '"sync_id" TEXT',
     '"title" TEXT NOT NULL',
     if (version >= 6) '"author" TEXT',
     if (version >= 6) '"total_pages" INTEGER',
@@ -119,6 +122,7 @@ String _booksDdl(int version) {
 String _sessionsDdl(int version) {
   final columns = <String>[
     '"id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT',
+    if (version >= 12) '"sync_id" TEXT',
     '"book_id" INTEGER NOT NULL REFERENCES "books" ("id") ON DELETE CASCADE',
     '"date" TEXT NOT NULL',
     '"duration_seconds" INTEGER NOT NULL',
@@ -207,8 +211,8 @@ Future<Set<String>> _columnsOf(AppDatabase db, String table) async {
 }
 
 void main() {
-  for (var version = 1; version <= 10; version++) {
-    test('upgrades a v$version database to the complete v11 schema', () async {
+  for (var version = 1; version <= 11; version++) {
+    test('upgrades a v$version database to the complete v12 schema', () async {
       final db = _databaseAtVersion(version);
       addTearDown(db.close);
 
@@ -224,20 +228,20 @@ void main() {
       expect(
         tables.map((row) => row.data['name'] as String).toSet(),
         _allColumns.keys.toSet(),
-        reason: 'v$version -> v11 must create every table',
+        reason: 'v$version -> v12 must create every table',
       );
 
       for (final entry in _allColumns.entries) {
         expect(
           await _columnsOf(db, entry.key),
           entry.value,
-          reason: 'v$version -> v11 left "${entry.key}" incomplete',
+          reason: 'v$version -> v12 left "${entry.key}" incomplete',
         );
       }
     });
   }
 
-  test('v10 -> v11 repairs impossible durations during the upgrade', () async {
+  test('v10 -> v12 repairs impossible durations and migrates sync IDs', () async {
     const startSeconds = 1700000000;
     const endSeconds = startSeconds + 20 * 60; // 20 real minutes
 
@@ -279,12 +283,24 @@ void main() {
     expect(byId[1]!.durationSeconds, 20 * 60);
     expect(byId[2]!.durationSeconds, 600);
     expect(byId[3]!.durationSeconds, 999);
+    expect(byId[1]!.syncId, isNotEmpty);
+    expect(byId[2]!.syncId, isNotEmpty);
+    expect(byId[3]!.syncId, isNotEmpty);
 
-    // The repair must be queued for cloud sync too.
+    final books = await db.getAllBooks();
+    expect(books.single.syncId, isNotEmpty);
+
+    // The repair must be queued for cloud sync too, with a stable UUID key.
     final pending = await db.getPendingSyncRecords();
     expect(
-      pending.map((record) => record.recordKey),
-      contains('session:1'),
+      pending.any(
+        (record) =>
+            record.entityType == 'reading_session' &&
+            record.recordKey.startsWith('session:') &&
+            !record.recordKey.startsWith('session:legacy:') &&
+            record.recordKey != 'session:1',
+      ),
+      isTrue,
     );
   });
 }

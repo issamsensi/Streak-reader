@@ -4,6 +4,7 @@ import 'package:drift/drift.dart' as drift;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/constants/app_constants.dart';
 import '../../../core/di/providers.dart';
 import '../../../core/utils/duration_units.dart';
 import '../../../data/datasources/local/app_database.dart';
@@ -100,6 +101,7 @@ class ReadingSessionController extends StateNotifier<ReadingSessionState> {
   Future<void> _pendingPageWrite = Future<void>.value();
   Future<void> _pendingSessionWrite = Future<void>.value();
   Timer? _autosaveTimer;
+  Timer? _idleTimer;
   bool _isFinishing = false;
   int _lastPersistedPage = 0;
 
@@ -114,6 +116,7 @@ class ReadingSessionController extends StateNotifier<ReadingSessionState> {
   bool get isPaused => state.isPaused;
   bool get hasSession => state.hasSession;
   int get currentPage => state.currentPage;
+  int get sessionBookId => state.bookId;
 
   void setBookContext(int bookId, int page) {
     if (state.hasSession || state.bookId == bookId) return;
@@ -173,6 +176,22 @@ class ReadingSessionController extends StateNotifier<ReadingSessionState> {
         .then((id) {
       if (mounted && !state.hasSession && state.bookId == bookId) {
         state = state.copyWith(sessionId: id);
+      }
+    }).catchError((Object _) {
+      // A failed DB insert must not leave an active in-memory session with no
+      // persisted row; that would make finish/pause behave unpredictably.
+      _autosaveTimer?.cancel();
+      _idleTimer?.cancel();
+      if (mounted && !state.hasSession && state.bookId == bookId) {
+        state = ReadingSessionState(
+          isActive: false,
+          isPaused: false,
+          pagesAtStart: initialPage,
+          currentPage: initialPage,
+          bookId: bookId,
+          elapsedMilliseconds: 0,
+          readingMode: readingMode,
+        );
       }
     });
     _startAutosave();
@@ -234,6 +253,9 @@ class ReadingSessionController extends StateNotifier<ReadingSessionState> {
     );
     if (continuesPhysicalSegment) {
       _startAutosave();
+    } else if (state.isActive && state.readingMode == 'digital') {
+      _startAutosave();
+      _resetIdleTimer();
     }
     return true;
   }
@@ -260,6 +282,7 @@ class ReadingSessionController extends StateNotifier<ReadingSessionState> {
       );
     });
     _startAutosave();
+    _resetIdleTimer();
   }
 
   Future<void> pause() async {
@@ -278,9 +301,26 @@ class ReadingSessionController extends StateNotifier<ReadingSessionState> {
     );
     await _persistDraft();
     _autosaveTimer?.cancel();
+    _idleTimer?.cancel();
   }
 
-  void recordInteraction() {}
+  void recordInteraction() {
+    if (!mounted || !state.isActive || state.readingMode != 'digital') return;
+    _resetIdleTimer();
+  }
+
+  void _resetIdleTimer() {
+    _idleTimer?.cancel();
+    if (!mounted || !state.isActive || state.readingMode != 'digital') return;
+    _idleTimer = Timer(
+      const Duration(minutes: AppConstants.idleTimeoutMinutes),
+      () {
+        if (mounted && state.isActive) {
+          unawaited(pause());
+        }
+      },
+    );
+  }
 
   void updatePage(int page) {
     state = state.copyWith(currentPage: page);
@@ -295,14 +335,18 @@ class ReadingSessionController extends StateNotifier<ReadingSessionState> {
   void _queuePersistPage(int bookId, int page) {
     if (bookId <= 0 || page <= 0 || page == _lastPersistedPage) return;
     _lastPersistedPage = page;
-    _pendingPageWrite = _pendingPageWrite.then(
+    final next = _pendingPageWrite.then(
       (_) => db.updateBookLastPage(bookId, page),
     );
+    // Keep later page writes and finish() running even if one write fails.
+    _pendingPageWrite = next.catchError((Object _) {});
   }
 
   Future<void> persistCurrentPage() async {
     _queuePersistPage(state.bookId, state.currentPage);
-    await _pendingPageWrite;
+    try {
+      await _pendingPageWrite;
+    } catch (_) {}
     await _sessionReady;
     if (state.hasSession) await _persistDraft();
   }
@@ -384,6 +428,7 @@ class ReadingSessionController extends StateNotifier<ReadingSessionState> {
       await _sessionReady;
       if (!mounted || !state.hasSession) return;
       _autosaveTimer?.cancel();
+      _idleTimer?.cancel();
 
       final sessionId = state.sessionId!;
       final bookId = state.bookId;
@@ -392,8 +437,12 @@ class ReadingSessionController extends StateNotifier<ReadingSessionState> {
       final startTime = state.startTime;
       final finalPages = pagesRead ?? getPagesRead();
 
-      await _pendingPageWrite;
-      await _pendingSessionWrite;
+      try {
+        await _pendingPageWrite;
+      } catch (_) {}
+      try {
+        await _pendingSessionWrite;
+      } catch (_) {}
 
       final now = _now();
       final elapsedMilliseconds = _elapsedMillisecondsAt(now);
@@ -452,6 +501,7 @@ class ReadingSessionController extends StateNotifier<ReadingSessionState> {
   @override
   void dispose() {
     _autosaveTimer?.cancel();
+    _idleTimer?.cancel();
     super.dispose();
   }
 }

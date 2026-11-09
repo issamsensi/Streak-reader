@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:home_widget/home_widget.dart';
@@ -16,10 +17,19 @@ import 'src/features/stats/providers/stats_provider.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SyncService.initialize();
-  await ReadingReminderService.instance.initialize();
-  final widgetUri = await HomeWidget.initiallyLaunchedFromHomeWidget();
-  final initialBookId =
-      int.tryParse(widgetUri?.queryParameters['bookId'] ?? '');
+
+  // Platform plugin work must not delay first frame. Notifications initialize
+  // in the background; widget launch URIs are best-effort with a short timeout.
+  unawaited(ReadingReminderService.instance.initialize());
+  int? initialBookId;
+  try {
+    final widgetUri = await HomeWidget.initiallyLaunchedFromHomeWidget()
+        .timeout(const Duration(milliseconds: 400));
+    initialBookId = int.tryParse(widgetUri?.queryParameters['bookId'] ?? '');
+  } catch (_) {
+    // Home widgets are not available on every platform/build target.
+  }
+
   runApp(
     ProviderScope(
       child: MyApp(initialBookId: initialBookId),

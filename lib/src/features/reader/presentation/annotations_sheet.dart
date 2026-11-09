@@ -16,6 +16,10 @@ class AnnotationsSheet extends StatefulWidget {
   final Future<void> Function(int) onDeleteHighlight;
   final Future<void> Function(Note) onEditNote;
   final Future<void> Function(int) onDeleteNote;
+  /// Optional reload for callers that can provide fresh snapshots after edits.
+  /// Keeps API compatible with existing call sites.
+  final Future<({List<Bookmark> bookmarks, List<Highlight> highlights, List<Note> notes})>
+      Function()? onReload;
 
   const AnnotationsSheet({
     super.key,
@@ -30,6 +34,7 @@ class AnnotationsSheet extends StatefulWidget {
     required this.onDeleteHighlight,
     required this.onEditNote,
     required this.onDeleteNote,
+    this.onReload,
   });
 
   @override
@@ -38,6 +43,17 @@ class AnnotationsSheet extends StatefulWidget {
 
 class _AnnotationsSheetState extends State<AnnotationsSheet> {
   final TextEditingController _searchController = TextEditingController();
+  late List<Bookmark> _bookmarks;
+  late List<Highlight> _highlights;
+  late List<Note> _notes;
+
+  @override
+  void initState() {
+    super.initState();
+    _bookmarks = List<Bookmark>.of(widget.bookmarks);
+    _highlights = List<Highlight>.of(widget.highlights);
+    _notes = List<Note>.of(widget.notes);
+  }
 
   @override
   void dispose() {
@@ -45,13 +61,26 @@ class _AnnotationsSheetState extends State<AnnotationsSheet> {
     super.dispose();
   }
 
+  Future<void> _reload() async {
+    final reload = widget.onReload;
+    if (reload != null) {
+      final data = await reload();
+      if (!mounted) return;
+      setState(() {
+        _bookmarks = List<Bookmark>.of(data.bookmarks);
+        _highlights = List<Highlight>.of(data.highlights);
+        _notes = List<Note>.of(data.notes);
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final query = _searchController.text.trim().toLowerCase();
     final filteredNotes = query.isEmpty
-        ? widget.notes
-        : widget.notes
+        ? _notes
+        : _notes
             .where((note) => note.content.toLowerCase().contains(query))
             .toList();
 
@@ -86,13 +115,13 @@ class _AnnotationsSheetState extends State<AnnotationsSheet> {
             ),
             const SizedBox(height: 16),
             Text(context.l10n.bookmarks, style: theme.textTheme.titleMedium),
-            if (widget.bookmarks.isEmpty)
+            if (_bookmarks.isEmpty)
               ListTile(
                 leading: const Icon(Icons.bookmark_border),
                 title: Text(context.l10n.noBookmarks),
               )
             else
-              ...widget.bookmarks.map(
+              ..._bookmarks.map(
                 (bookmark) => ListTile(
                   leading: const Icon(Icons.bookmark),
                   title: Text(
@@ -106,20 +135,29 @@ class _AnnotationsSheetState extends State<AnnotationsSheet> {
                   onTap: () => widget.onBookmarkTap(bookmark.pageNumber),
                   trailing: IconButton(
                     tooltip: context.l10n.delete,
-                    onPressed: () => widget.onDeleteBookmark(bookmark.id),
+                    onPressed: () async {
+                      await widget.onDeleteBookmark(bookmark.id);
+                      if (!mounted) return;
+                      setState(() {
+                        _bookmarks = _bookmarks
+                            .where((item) => item.id != bookmark.id)
+                            .toList();
+                      });
+                      await _reload();
+                    },
                     icon: const Icon(Icons.delete_outline),
                   ),
                 ),
               ),
             const SizedBox(height: 18),
             Text(context.l10n.highlights, style: theme.textTheme.titleMedium),
-            if (widget.highlights.isEmpty)
+            if (_highlights.isEmpty)
               ListTile(
                 leading: const Icon(Icons.highlight_outlined),
                 title: Text(context.l10n.noHighlights),
               )
             else
-              ...widget.highlights.map(
+              ..._highlights.map(
                 (highlight) => ListTile(
                   leading: Icon(
                     Icons.highlight,
@@ -138,12 +176,24 @@ class _AnnotationsSheetState extends State<AnnotationsSheet> {
                     children: [
                       IconButton(
                         tooltip: context.l10n.edit,
-                        onPressed: () => widget.onEditHighlight(highlight),
+                        onPressed: () async {
+                          await widget.onEditHighlight(highlight);
+                          await _reload();
+                        },
                         icon: const Icon(Icons.edit_outlined),
                       ),
                       IconButton(
                         tooltip: context.l10n.delete,
-                        onPressed: () => widget.onDeleteHighlight(highlight.id),
+                        onPressed: () async {
+                          await widget.onDeleteHighlight(highlight.id);
+                          if (!mounted) return;
+                          setState(() {
+                            _highlights = _highlights
+                                .where((item) => item.id != highlight.id)
+                                .toList();
+                          });
+                          await _reload();
+                        },
                         icon: const Icon(Icons.delete_outline),
                       ),
                     ],
@@ -182,12 +232,24 @@ class _AnnotationsSheetState extends State<AnnotationsSheet> {
                     children: [
                       IconButton(
                         tooltip: context.l10n.edit,
-                        onPressed: () => widget.onEditNote(note),
+                        onPressed: () async {
+                          await widget.onEditNote(note);
+                          await _reload();
+                        },
                         icon: const Icon(Icons.edit_outlined),
                       ),
                       IconButton(
                         tooltip: context.l10n.delete,
-                        onPressed: () => widget.onDeleteNote(note.id),
+                        onPressed: () async {
+                          await widget.onDeleteNote(note.id);
+                          if (!mounted) return;
+                          setState(() {
+                            _notes = _notes
+                                .where((item) => item.id != note.id)
+                                .toList();
+                          });
+                          await _reload();
+                        },
                         icon: const Icon(Icons.delete_outline),
                       ),
                     ],

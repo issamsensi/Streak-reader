@@ -1,7 +1,11 @@
 import 'package:drift/drift.dart';
 
+import '../../../../core/utils/sync_id.dart';
+
 class Books extends Table {
   IntColumn get id => integer().autoIncrement()();
+  /// Stable cross-device identity for cloud sync. Local UI/FKs still use [id].
+  TextColumn get syncId => text().clientDefault(SyncId.generate).nullable()();
   TextColumn get title => text()();
   TextColumn get author => text().nullable()();
   IntColumn get totalPages => integer().nullable()();
@@ -18,4 +22,9 @@ class Books extends Table {
   BoolColumn get addedAsPreviouslyCompleted =>
       boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+        {syncId},
+      ];
 }

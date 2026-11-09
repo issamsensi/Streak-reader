@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest.dart' as tz;
@@ -13,32 +16,61 @@ class ReadingReminderService {
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
   bool _initialized = false;
+  Future<void>? _initFuture;
+  ReadingReminderSettings? _pendingSettings;
+  bool _pendingGoalCompleted = false;
 
-  Future<void> initialize() async {
-    if (_initialized) return;
-    tz.initializeTimeZones();
-    final timezone = await FlutterTimezone.getLocalTimezone();
-    tz.setLocalLocation(tz.getLocation(timezone.identifier));
-    const settings = InitializationSettings(
-      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-      iOS: DarwinInitializationSettings(),
-      macOS: DarwinInitializationSettings(),
-      linux: LinuxInitializationSettings(
-        defaultActionName: 'Open Streak Reader',
-      ),
-    );
-    final initialized = await _plugin.initialize(settings: settings);
-    if (initialized != true) return;
-    _initialized = true;
+  bool get _supported =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.macOS ||
+          defaultTargetPlatform == TargetPlatform.linux);
+
+  Future<void> initialize() {
+    if (_initialized) return Future<void>.value();
+    return _initFuture ??= _doInitialize();
+  }
+
+  Future<void> _doInitialize() async {
+    if (!_supported) return;
+    try {
+      tz.initializeTimeZones();
+      final timezone = await FlutterTimezone.getLocalTimezone();
+      tz.setLocalLocation(tz.getLocation(timezone.identifier));
+      const settings = InitializationSettings(
+        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+        iOS: DarwinInitializationSettings(),
+        macOS: DarwinInitializationSettings(),
+        linux: LinuxInitializationSettings(
+          defaultActionName: 'Open Streak Reader',
+        ),
+      );
+      final initialized = await _plugin.initialize(settings: settings);
+      if (initialized != true) return;
+      _initialized = true;
+      final pending = _pendingSettings;
+      if (pending != null) {
+        await configure(pending, goalCompleted: _pendingGoalCompleted);
+      }
+    } catch (_) {
+      // Notifications are optional; startup must continue without them.
+    }
   }
 
   Future<void> configure(
     ReadingReminderSettings settings, {
     required bool goalCompleted,
   }) async {
-    if (!_initialized) return;
-    await _cancelScheduled();
-    if (!settings.enabled || settings.days.isEmpty) return;
+    _pendingSettings = settings;
+    _pendingGoalCompleted = goalCompleted;
+    if (!_initialized) {
+      unawaited(initialize());
+      return;
+    }
+    try {
+      await _cancelScheduled();
+      if (!settings.enabled || settings.days.isEmpty) return;
 
     final android = _plugin.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>();
@@ -82,11 +114,16 @@ class ReadingReminderService {
         matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
       );
     }
+    } catch (_) {
+      // Scheduling is best-effort; permission/plugin issues must not crash.
+    }
   }
 
   Future<void> cancelAll() async {
     if (!_initialized) return;
-    await _cancelScheduled();
+    try {
+      await _cancelScheduled();
+    } catch (_) {}
   }
 
   Future<void> _cancelScheduled() async {

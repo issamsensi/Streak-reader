@@ -4,6 +4,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:streak_reader/src/core/utils/date_only.dart';
+import 'package:streak_reader/src/core/utils/sync_id.dart';
 import 'package:streak_reader/src/core/utils/duration_units.dart';
 import 'package:streak_reader/src/data/datasources/local/app_database.dart';
 import 'package:streak_reader/src/domain/entities/daily_goal_history.dart';
@@ -405,9 +406,12 @@ void main() {
       final session = (await db.getSessionsForBook(bookId)).single;
       expect(session.id, id);
       expect(session.durationSeconds, 20 * 60);
+      expect(SyncId.isValid(session.syncId), isTrue);
       final pending = await db.getPendingSyncRecords();
       final sessionRecord = pending.firstWhere(
-        (record) => record.recordKey == 'session:$id',
+        (record) =>
+            record.entityType == 'reading_session' &&
+            record.recordKey == 'session:${session.syncId}',
       );
       expect(sessionRecord.payload, contains('"durationSeconds":1200'));
     });
@@ -416,12 +420,15 @@ void main() {
       final (db, bookId) = await createDatabase();
       addTearDown(db.close);
       final start = DateTime(2026, 11, 8, 10);
+      final book = (await db.getAllBooks()).single;
+      final bookSyncId = book.syncId ?? SyncId.generate();
 
       await db.applyRemoteSyncRecord(
         entityType: 'reading_session',
         payload: jsonEncode({
-          'id': 77,
+          'syncId': SyncId.generate(),
           'bookId': bookId,
+          'bookSyncId': bookSyncId,
           'date': DateOnly.key(start),
           'durationSeconds': 456 * 60,
           'pagesRead': 4,

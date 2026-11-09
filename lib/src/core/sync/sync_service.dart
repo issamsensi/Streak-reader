@@ -87,6 +87,8 @@ class SyncService {
     if (isAvailable) await _client.auth.signOut();
   }
 
+  static const _pullBatchSize = 200;
+
   Future<void> synchronize() async {
     if (!isAvailable || currentUser == null) return;
     await _push();
@@ -115,37 +117,48 @@ class SyncService {
   }
 
   Future<void> _pull() async {
-    final rows = await _client
-        .from('sync_records')
-        .select('record_key, entity_type, payload, updated_at, deleted')
-        .order('updated_at');
-    final local = {
-      for (final record in await database.getAllSyncRecords())
-        record.recordKey: record,
-    };
-    for (final row in rows) {
-      final key = row['record_key'] as String;
-      final remoteUpdated = DateTime.parse(row['updated_at'] as String);
-      final localUpdated = local[key]?.updatedAt;
-      if (localUpdated != null && !remoteUpdated.isAfter(localUpdated)) {
-        continue;
-      }
-      await database.saveSyncRecord(
-        SyncRecordsCompanion.insert(
-          recordKey: key,
-          entityType: row['entity_type'] as String,
-          payload: jsonEncode(row['payload']),
-          updatedAt: remoteUpdated,
-          deleted: Value(row['deleted'] as bool? ?? false),
-          pending: const Value(false),
-        ),
-      );
-      if (row['deleted'] != true) {
+    var offset = 0;
+    while (true) {
+      final rows = await _client
+          .from('sync_records')
+          .select('record_key, entity_type, payload, updated_at, deleted')
+          .order('updated_at')
+          .order('record_key')
+          .range(offset, offset + _pullBatchSize - 1);
+      if (rows.isEmpty) break;
+
+      final local = {
+        for (final record in await database.getAllSyncRecords())
+          record.recordKey: record.updatedAt,
+      };
+      for (final row in rows) {
+        final key = row['record_key'] as String;
+        final remoteUpdated = DateTime.parse(row['updated_at'] as String).toUtc();
+        final localUpdated = local[key];
+        final deleted = row['deleted'] as bool? ?? false;
+        if (localUpdated != null && !remoteUpdated.isAfter(localUpdated)) {
+          continue;
+        }
+        final payload = jsonEncode(row['payload']);
+        await database.saveSyncRecord(
+          SyncRecordsCompanion.insert(
+            recordKey: key,
+            entityType: row['entity_type'] as String,
+            payload: payload,
+            updatedAt: remoteUpdated,
+            deleted: Value(deleted),
+            pending: const Value(false),
+          ),
+        );
         await database.applyRemoteSyncRecord(
           entityType: row['entity_type'] as String,
-          payload: jsonEncode(row['payload']),
+          payload: payload,
+          deleted: deleted,
         );
+        local[key] = remoteUpdated;
       }
+      if (rows.length < _pullBatchSize) break;
+      offset += rows.length;
     }
   }
 }
