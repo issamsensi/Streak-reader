@@ -18,6 +18,7 @@ import 'session_controls.dart';
 import 'annotations_sheet.dart';
 import 'note_draft.dart';
 import '../../assistant/presentation/book_assistant_screen.dart';
+import '../../books/providers/books_providers.dart';
 
 class PdfReaderScreen extends ConsumerStatefulWidget {
   final int bookId;
@@ -186,29 +187,13 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen>
   }
 
   Future<String?> _askForText(String title, String hint) {
-    final textController = TextEditingController();
+    // The dialog owns its controller (see _TextPromptDialog): disposing it
+    // from here, as the showDialog future completes, runs while the dialog
+    // is still animating out and crashes its TextField.
     return showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: TextField(
-          controller: textController,
-          autofocus: true,
-          decoration: InputDecoration(hintText: hint),
-          onSubmitted: (_) => Navigator.of(context).pop(textController.text),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(context.l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(textController.text),
-            child: Text(context.l10n.save),
-          ),
-        ],
-      ),
-    ).whenComplete(textController.dispose);
+      builder: (_) => _TextPromptDialog(title: title, hint: hint),
+    );
   }
 
   Future<void> _saveSelectionHighlight() async {
@@ -264,63 +249,19 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen>
   }
 
   Future<void> _editNote(Note? note, {int? defaultPage}) async {
-    final controller = TextEditingController(text: note?.content ?? '');
-    var linkedToPage = note?.pageNumber != null || defaultPage != null;
+    // The dialog owns its controller (see _NoteEditorDialog): disposing it
+    // here, as the showDialog future completes, runs while the dialog is
+    // still animating out and crashes its TextField.
     final draft = await showDialog<NoteDraft>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title:
-              Text(note == null ? context.l10n.newNote : context.l10n.editNote),
-          content: SizedBox(
-            width: 520,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: controller,
-                  autofocus: true,
-                  minLines: 5,
-                  maxLines: 12,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: InputDecoration(
-                    hintText: context.l10n.noteHint,
-                    border: const OutlineInputBorder(),
-                  ),
-                ),
-                CheckboxListTile(
-                  contentPadding: EdgeInsets.zero,
-                  value: linkedToPage,
-                  onChanged: (value) => setDialogState(
-                    () => linkedToPage = value ?? false,
-                  ),
-                  title: Text(context.l10n.linkNoteToPage),
-                  subtitle: Text(
-                    context.l10n.pageNumberLabel(defaultPage ?? _currentPage),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(context.l10n.cancel),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(
-                NoteDraft(
-                  controller.text,
-                  linkedToPage ? (note?.pageNumber ?? defaultPage) : null,
-                ),
-              ),
-              child: Text(context.l10n.save),
-            ),
-          ],
-        ),
+      builder: (_) => _NoteEditorDialog(
+        initialContent: note?.content ?? '',
+        isNew: note == null,
+        initiallyLinked: note?.pageNumber != null || defaultPage != null,
+        linkedPageNumber: note?.pageNumber ?? defaultPage,
+        displayPageNumber: defaultPage ?? _currentPage,
       ),
     );
-    controller.dispose();
     if (draft == null || draft.content.trim().isEmpty) return;
     final now = DateTime.now();
     if (note == null) {
@@ -498,7 +439,12 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen>
               child: PdfViewer.file(
                 widget.filePath,
                 controller: _controller,
-                initialPageNumber: _initialPage,
+                // _currentPage tracks live navigation (seeded from
+                // _initialPage). Using it means a rebuilt viewer resumes
+                // where the reader actually is instead of jumping back
+                // to the page the book was opened at and overwriting the
+                // persisted last page with it.
+                initialPageNumber: _currentPage,
                 params: PdfViewerParams(
                   enableTextSelection: true,
                   onTextSelectionChange: (selection) {
@@ -600,6 +546,16 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen>
                     if (!mounted) return;
                     final pageCount = document.pages.length;
                     setState(() => _pageCount = pageCount);
+                    // Backfill books added before page counting existed
+                    // (or whose count failed at pick time). Only fills a
+                    // missing total, never overwrites a manual one.
+                    if (pageCount > 0) {
+                      unawaited(
+                        ref
+                            .read(booksRepositoryProvider)
+                            .fillTotalPagesIfMissing(widget.bookId, pageCount),
+                      );
+                    }
                     // The stored page can be stale if the PDF was replaced by
                     // a shorter document. Clamp it so reading can continue.
                     if (pageCount > 0 && _currentPage > pageCount) {
@@ -813,6 +769,135 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen>
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Single-line text prompt (e.g. bookmark title). Owns its controller so
+/// it is disposed with the dialog state — after the exit animation has
+/// removed the TextField — rather than when the result future completes.
+class _TextPromptDialog extends StatefulWidget {
+  final String title;
+  final String hint;
+
+  const _TextPromptDialog({required this.title, required this.hint});
+
+  @override
+  State<_TextPromptDialog> createState() => _TextPromptDialogState();
+}
+
+class _TextPromptDialogState extends State<_TextPromptDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.title),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        decoration: InputDecoration(hintText: widget.hint),
+        onSubmitted: (_) => Navigator.of(context).pop(_controller.text),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(context.l10n.cancel),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(_controller.text),
+          child: Text(context.l10n.save),
+        ),
+      ],
+    );
+  }
+}
+
+/// Note editor. Owns its controller for the same reason as
+/// [_TextPromptDialog]; pops a [NoteDraft] on save and null on cancel.
+class _NoteEditorDialog extends StatefulWidget {
+  final String initialContent;
+  final bool isNew;
+  final bool initiallyLinked;
+  final int? linkedPageNumber;
+  final int displayPageNumber;
+
+  const _NoteEditorDialog({
+    required this.initialContent,
+    required this.isNew,
+    required this.initiallyLinked,
+    required this.linkedPageNumber,
+    required this.displayPageNumber,
+  });
+
+  @override
+  State<_NoteEditorDialog> createState() => _NoteEditorDialogState();
+}
+
+class _NoteEditorDialogState extends State<_NoteEditorDialog> {
+  late final _controller = TextEditingController(text: widget.initialContent);
+  late bool _linkedToPage = widget.initiallyLinked;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.isNew ? context.l10n.newNote : context.l10n.editNote),
+      content: SizedBox(
+        width: 520,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _controller,
+              autofocus: true,
+              minLines: 5,
+              maxLines: 12,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: InputDecoration(
+                hintText: context.l10n.noteHint,
+                border: const OutlineInputBorder(),
+              ),
+            ),
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              value: _linkedToPage,
+              onChanged: (value) =>
+                  setState(() => _linkedToPage = value ?? false),
+              title: Text(context.l10n.linkNoteToPage),
+              subtitle: Text(
+                context.l10n.pageNumberLabel(widget.displayPageNumber),
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(context.l10n.cancel),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(
+            NoteDraft(
+              _controller.text,
+              _linkedToPage ? widget.linkedPageNumber : null,
+            ),
+          ),
+          child: Text(context.l10n.save),
+        ),
+      ],
     );
   }
 }

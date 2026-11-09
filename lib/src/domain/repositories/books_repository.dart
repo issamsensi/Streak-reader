@@ -29,8 +29,18 @@ abstract class BooksRepository {
     required String status,
     DateTime? completionDate,
   });
+  /// Attaches or replaces the PDF. When [totalPages] is given (counted
+  /// from the new file) it becomes the book's total; when null the
+  /// existing total is left untouched.
   Future<void> updateBookFile(int id,
-      {required String filePath, String? fileName, int? fileSize});
+      {required String filePath,
+      String? fileName,
+      int? fileSize,
+      int? totalPages});
+
+  /// Sets the total only when the book has none yet, so opening a PDF
+  /// backfills legacy books without overwriting a manual page count.
+  Future<void> fillTotalPagesIfMissing(int id, int totalPages);
   Future<void> updateLastPage(int id, int lastPage);
   Future<void> markCompleted(int id, bool completed);
   Future<void> updateStatus(int id, String status);

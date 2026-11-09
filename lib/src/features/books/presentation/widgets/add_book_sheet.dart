@@ -1,7 +1,9 @@
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/di/providers.dart';
 import '../../../../core/l10n/l10n_extension.dart';
 import '../../../../data/datasources/local/app_database.dart';
 import '../../providers/books_providers.dart';
@@ -68,7 +70,9 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['pdf'],
-        withData: false,
+        // Bytes are only needed on web, where there is no local path to
+        // count pages from; loading them on mobile would waste memory.
+        withData: kIsWeb,
       );
       if (result == null) return;
       picked = result.files.single;
@@ -91,6 +95,19 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
         _titleController.text = picked.name
             .replaceFirst(RegExp(r'\.pdf$', caseSensitive: false), '');
       }
+    });
+
+    // Auto-fill total pages from the PDF; the field stays editable, and
+    // a failed count simply leaves it for manual entry.
+    final pageCount = await ref.read(pdfPageCounterProvider)(
+      filePath: picked.path,
+      bytes: picked.bytes,
+      sourceName: picked.name,
+    );
+    if (!mounted || pageCount == null) return;
+    setState(() {
+      _pagesController.text = pageCount.toString();
+      _showMetadata = true;
     });
   }
 

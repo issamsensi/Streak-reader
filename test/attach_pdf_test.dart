@@ -32,6 +32,52 @@ void main() {
     expect(books.single.title, 'Wishlist book');
   });
 
+  test('updateBookFile stores a counted total and keeps it when uncounted',
+      () async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    final repo = BooksRepositoryImpl(db);
+
+    final id = await repo.addBook(title: 'Book', totalPages: 10);
+
+    // Replacing the PDF with a counted one replaces the total.
+    await repo.updateBookFile(
+      id,
+      filePath: '/tmp/new.pdf',
+      fileName: 'new.pdf',
+      totalPages: 42,
+    );
+    var book = (await repo.getAllBooks()).single;
+    expect(book.totalPages, 42);
+
+    // A failed count passes no total, so the stored one survives.
+    await repo.updateBookFile(id, filePath: '/tmp/other.pdf');
+    book = (await repo.getAllBooks()).single;
+    expect(book.filePath, '/tmp/other.pdf');
+    expect(book.totalPages, 42);
+  });
+
+  test('fillTotalPagesIfMissing only fills a missing total', () async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    final repo = BooksRepositoryImpl(db);
+
+    final missing = await repo.addBook(title: 'Legacy');
+    await repo.fillTotalPagesIfMissing(missing, 120);
+    expect((await repo.getAllBooks()).single.totalPages, 120);
+
+    // A manual total is never overwritten by the reader backfill.
+    final manual = await repo.addBook(title: 'Manual', totalPages: 300);
+    await repo.fillTotalPagesIfMissing(manual, 280);
+    final books = await repo.getAllBooks();
+    expect(books.firstWhere((b) => b.id == manual).totalPages, 300);
+
+    // Invalid counts and unknown books are no-ops.
+    await repo.fillTotalPagesIfMissing(missing, 0);
+    await repo.fillTotalPagesIfMissing(9999, 50);
+    expect((await repo.getAllBooks()).first.totalPages, 120);
+  });
+
   testWidgets('wishlist book tap opens details and menu offers adding a PDF',
       (tester) async {
     SharedPreferences.setMockInitialValues({});

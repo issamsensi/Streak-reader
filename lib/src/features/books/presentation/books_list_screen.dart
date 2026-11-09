@@ -89,36 +89,15 @@ class _BooksListScreenState extends ConsumerState<BooksListScreen> {
   }
 
   Future<void> _showSearchDialog() async {
-    final controller = TextEditingController(text: _searchController.text);
-    await showDialog<void>(
+    // The dialog owns its controller (see _SearchBooksDialog): disposing
+    // it here, as the showDialog future completes, runs while the dialog
+    // is still animating out and crashes its TextField. It pops with the
+    // query to apply, '' to clear, or null to leave the search unchanged.
+    final result = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(context.l10n.searchBooks),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: InputDecoration(hintText: context.l10n.searchBooks),
-          onSubmitted: (_) => Navigator.pop(context),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              _searchController.clear();
-              Navigator.pop(context);
-            },
-            child: Text(context.l10n.clear),
-          ),
-          FilledButton(
-            onPressed: () {
-              _searchController.text = controller.text;
-              Navigator.pop(context);
-            },
-            child: Text(context.l10n.search),
-          ),
-        ],
-      ),
+      builder: (_) => _SearchBooksDialog(initialText: _searchController.text),
     );
-    controller.dispose();
+    if (result != null) _searchController.text = result;
   }
 
   void _showAddSheet(BuildContext context) {
@@ -163,12 +142,20 @@ class _BooksListScreenState extends ConsumerState<BooksListScreen> {
       return;
     }
 
+    // The new file is the source of truth for the page total; a failed
+    // count (null) keeps the previously stored total.
+    final pageCount = await ref.read(pdfPageCounterProvider)(
+      filePath: file.path,
+      sourceName: file.name,
+    );
+
     try {
       await ref.read(booksRepositoryProvider).updateBookFile(
             book.id,
             filePath: file.path!,
             fileName: file.name,
             fileSize: file.size,
+            totalPages: pageCount,
           );
     } catch (error) {
       if (!context.mounted) return;
@@ -394,47 +381,12 @@ class _BooksListScreenState extends ConsumerState<BooksListScreen> {
     }
   }
 
-  Future<(String, String)?> _askCollectionName() async {
-    final controller = TextEditingController();
-    final descriptionController = TextEditingController();
-    final value = await showDialog<(String, String)>(
+  Future<(String, String)?> _askCollectionName() {
+    // Same dialog-owned-controller pattern as _showSearchDialog.
+    return showDialog<(String, String)>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(context.l10n.newCollection),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: controller,
-              autofocus: true,
-              decoration:
-                  InputDecoration(hintText: context.l10n.collectionName),
-            ),
-            TextField(
-              controller: descriptionController,
-              decoration:
-                  InputDecoration(hintText: context.l10n.collectionDescription),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(context.l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(
-              context,
-              (controller.text, descriptionController.text),
-            ),
-            child: Text(context.l10n.save),
-          ),
-        ],
-      ),
+      builder: (_) => const _NewCollectionDialog(),
     );
-    controller.dispose();
-    descriptionController.dispose();
-    return value;
   }
 
   @override
@@ -763,6 +715,108 @@ class _BooksListScreenState extends ConsumerState<BooksListScreen> {
         icon: const Icon(Icons.add_rounded),
         label: Text(l10n.addBook),
       ),
+    );
+  }
+}
+
+/// Book search prompt. Owns its controller so it is disposed with the
+/// dialog state — after the exit animation has removed the TextField —
+/// rather than when the result future completes. Pops with the query to
+/// apply, '' to clear, or null (dismissed) to leave the search unchanged.
+class _SearchBooksDialog extends StatefulWidget {
+  final String initialText;
+
+  const _SearchBooksDialog({required this.initialText});
+
+  @override
+  State<_SearchBooksDialog> createState() => _SearchBooksDialogState();
+}
+
+class _SearchBooksDialogState extends State<_SearchBooksDialog> {
+  late final _controller = TextEditingController(text: widget.initialText);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(context.l10n.searchBooks),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        decoration: InputDecoration(hintText: context.l10n.searchBooks),
+        onSubmitted: (_) => Navigator.pop(context, _controller.text),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, ''),
+          child: Text(context.l10n.clear),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, _controller.text),
+          child: Text(context.l10n.search),
+        ),
+      ],
+    );
+  }
+}
+
+/// New-collection prompt. Owns its controllers for the same reason as
+/// [_SearchBooksDialog]; pops with (name, description) or null on cancel.
+class _NewCollectionDialog extends StatefulWidget {
+  const _NewCollectionDialog();
+
+  @override
+  State<_NewCollectionDialog> createState() => _NewCollectionDialogState();
+}
+
+class _NewCollectionDialogState extends State<_NewCollectionDialog> {
+  final _controller = TextEditingController();
+  final _descriptionController = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(context.l10n.newCollection),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: _controller,
+            autofocus: true,
+            decoration: InputDecoration(hintText: context.l10n.collectionName),
+          ),
+          TextField(
+            controller: _descriptionController,
+            decoration:
+                InputDecoration(hintText: context.l10n.collectionDescription),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(context.l10n.cancel),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(
+            context,
+            (_controller.text, _descriptionController.text),
+          ),
+          child: Text(context.l10n.save),
+        ),
+      ],
     );
   }
 }

@@ -96,14 +96,31 @@ class BooksRepositoryImpl implements BooksRepository {
 
   @override
   Future<void> updateBookFile(int id,
-      {required String filePath, String? fileName, int? fileSize}) async {
+      {required String filePath,
+      String? fileName,
+      int? fileSize,
+      int? totalPages}) async {
     await (db.update(db.books)..where((tbl) => tbl.id.equals(id))).write(
       BooksCompanion(
         filePath: Value(filePath),
         fileName: Value(fileName),
         fileSize: Value(fileSize),
+        totalPages:
+            totalPages == null ? const Value.absent() : Value(totalPages),
       ),
     );
+  }
+
+  @override
+  Future<void> fillTotalPagesIfMissing(int id, int totalPages) async {
+    if (totalPages <= 0) return;
+    final book = await (db.select(db.books)..where((tbl) => tbl.id.equals(id)))
+        .getSingleOrNull();
+    if (book == null || (book.totalPages != null && book.totalPages! > 0)) {
+      return;
+    }
+    await (db.update(db.books)..where((tbl) => tbl.id.equals(id)))
+        .write(BooksCompanion(totalPages: Value(totalPages)));
   }
 
   @override
